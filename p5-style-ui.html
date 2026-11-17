@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P5 Style UI · 滑块与点击反馈 Demo</title>
+<style>
+:root{
+  --red:#e5001c;
+  --black:#0b0b0b;
+  --white:#ffffff;
+  --snap:cubic-bezier(.2,1.6,.4,1);      /* 回弹：P5 菜单那种“啪”一下到位 */
+  --out:cubic-bezier(.16,1,.3,1);
+  --zh:"Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--red);color:#fff;
+  font-family:"Arial Black","Helvetica Neue",Arial,var(--zh);
+  user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{position:fixed;inset:0;overflow:hidden}
+
+/* ============ 背景层 ============ */
+.bg-burst{position:absolute;width:300vmax;height:300vmax;left:68%;top:50%;
+  margin:-150vmax 0 0 -150vmax;pointer-events:none;
+  background:repeating-conic-gradient(rgba(0,0,0,.2) 0deg 7deg,transparent 7deg 19deg)}
+.bg-dots{position:absolute;inset:0;pointer-events:none;opacity:.6;
+  background-image:radial-gradient(rgba(0,0,0,.45) 1.7px,transparent 2.2px);
+  background-size:11px 11px;
+  -webkit-mask-image:linear-gradient(115deg,transparent 35%,#000 85%);
+          mask-image:linear-gradient(115deg,transparent 35%,#000 85%)}
+.bg-slab{position:absolute;left:-6%;top:-10%;width:60%;height:120%;pointer-events:none}
+.bg-slab.w{background:#fff;clip-path:polygon(0 0,100% 0,74% 100%,0 100%)}
+.bg-slab.b{background:var(--black);clip-path:polygon(0 0,97% 0,71% 100%,0 100%)}
+.bg-word{position:absolute;right:-2vw;bottom:-4vh;font-size:22vw;line-height:.8;font-style:italic;
+  color:transparent;-webkit-text-stroke:3px rgba(0,0,0,.35);transform:rotate(-8deg);pointer-events:none;letter-spacing:-.04em}
+
+/* ============ 剪报字（勒索信字体） ============ */
+.ransom{display:inline-block;white-space:nowrap}
+.rl{display:inline-block;line-height:1.05;padding:0 .07em;margin:0 .015em;
+  transform:translateY(var(--y)) rotate(var(--r)) scale(var(--s))}
+.rl[data-k=black]{background:#000;color:#fff}
+.rl[data-k=white]{background:#fff;color:#000}
+.rl[data-k=red]{background:var(--red);color:#fff;outline:2px solid #000}
+.rl-sp{display:inline-block;width:.35em}
+
+/* ============ 场景 ============ */
+.screen{position:absolute;inset:0;display:none}
+.screen.active{display:block}
+
+/* 主菜单 */
+.logo{position:absolute;right:5vw;top:7vh;font-size:clamp(28px,4.6vw,70px);transform:rotate(-6deg);
+  filter:drop-shadow(6px 6px 0 #000)}
+.datebox{position:absolute;right:6vw;top:24vh;transform:rotate(-6deg);text-align:right}
+.d-num{font-size:clamp(40px,7vw,110px);font-style:italic;color:#fff;
+  -webkit-text-stroke:3px #000;paint-order:stroke fill;line-height:.9}
+.d-day{display:inline-block;background:#000;color:#fff;font-size:clamp(16px,1.8vw,26px);
+  padding:.15em .7em;transform:skewX(-18deg);margin-top:.3em}
+
+.menu{position:absolute;left:5vw;top:20vh;width:52vw;height:70vh;transform:rotate(-7deg);list-style:none}
+.item{position:absolute;white-space:nowrap;font-style:italic;font-size:clamp(38px,6.2vw,92px);
+  line-height:1;padding:.06em .2em;cursor:pointer;transform-origin:left center;
+  transition:transform .26s var(--snap);z-index:2}
+.item.sel{transform:translateX(.25em) scale(1.12)}
+.item .rl{color:#fff;transition:color .08s,transform .26s var(--snap);transition-delay:calc(var(--i)*14ms)}
+.item.sel .rl{color:#000;transform:translateY(var(--y)) rotate(calc(var(--r)*-1.6)) scale(calc(var(--s)*1.06))}
+.item .sub{display:inline-block;vertical-align:middle;margin-left:.5em;font-family:var(--zh);font-weight:900;
+  font-style:normal;font-size:.24em;background:#fff;color:#000;padding:.25em .6em;transform:skewX(-15deg);
+  transition:background .1s,color .1s}
+.item.sel .sub{background:var(--red);color:#fff;outline:3px solid #000}
+.cursor{position:absolute;pointer-events:none;z-index:1;
+  transition:left .26s var(--snap),top .26s var(--snap),width .26s var(--snap),height .26s var(--snap)}
+.cursor i{position:absolute;inset:0;transition:clip-path .22s var(--out)}
+.cursor .c-red{background:var(--red);transform:translate(14px,10px)}
+.cursor .c-white{background:#fff}
+
+.hintbar{position:absolute;right:0;bottom:3vh;background:#000;padding:.6em 2.2em .6em 1.6em;
+  font-family:var(--zh);font-weight:900;font-size:clamp(12px,1.2vw,16px);
+  clip-path:polygon(4% 0,100% 0,100% 100%,0 100%);display:flex;gap:1.4em;align-items:center}
+.hintbar b{background:#fff;color:#000;padding:.05em .45em;margin-right:.35em;display:inline-block;transform:skewX(-12deg)}
+
+/* 返回按钮 */
+.btn-back{position:absolute;left:3vw;bottom:4vh;z-index:5;background:#000;color:#fff;font-style:italic;
+  font-size:clamp(18px,2vw,28px);padding:.35em 1.2em .35em .9em;
+  clip-path:polygon(0 8%,100% 0,94% 100%,3% 88%);transition:transform .2s var(--snap)}
+.btn-back:hover{transform:scale(1.12) rotate(-3deg);background:var(--red)}
+
+/* 场景大标题 */
+.scr-title{position:absolute;left:4vw;top:5vh;font-size:clamp(40px,7vw,110px);transform:rotate(-5deg);
+  filter:drop-shadow(7px 7px 0 #000);z-index:3}
+
+/* ============ CONFIG：滑块 ============ */
+.cfg-wrap{position:absolute;left:50%;top:54%;width:min(860px,90vw);transform:translate(-50%,-50%) rotate(-3deg);
+  display:flex;flex-direction:column;gap:clamp(10px,2.2vh,22px)}
+.p5s{position:relative;background:#000;padding:14px 26px 14px 30px;
+  clip-path:polygon(0 6%,100% 0,98.5% 100%,1.2% 92%)}
+.p5s:nth-child(even){margin-left:4%;margin-right:-4%}
+.sl-head{display:flex;align-items:baseline;gap:14px;margin-bottom:2px}
+.sl-label{font-size:clamp(20px,2.4vw,32px)}
+.sl-sub{font-family:var(--zh);font-weight:900;font-size:13px;color:var(--red);background:#fff;padding:1px 8px;transform:skewX(-14deg)}
+.sl-row{display:flex;align-items:center;gap:22px}
+.sl-track{position:relative;flex:1;height:64px;cursor:grab;outline:none;touch-action:none}
+.sl-track:focus-visible .sl-bg{box-shadow:0 0 0 4px #fff}
+.drag .sl-track{cursor:grabbing}
+.sl-bg{position:absolute;left:0;right:0;top:50%;height:24px;margin-top:-12px;background:#222;
+  transform:skewX(-24deg);border:3px solid #fff;overflow:hidden}
+.sl-fill{position:absolute;left:0;top:0;bottom:0;width:50%;background:var(--red);
+  clip-path:polygon(0 0,100% 0,calc(100% - 9px) 35%,100% 60%,calc(100% - 13px) 100%,0 100%);
+  transition:width .12s var(--out)}
+.sl-fill::after{content:"";position:absolute;inset:0;
+  background-image:radial-gradient(rgba(0,0,0,.4) 1.3px,transparent 1.8px);background-size:6px 6px}
+.drag .sl-fill{transition:none;background:linear-gradient(90deg,var(--red) 70%,#fff)}
+.sl-ticks{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(255,255,255,.55) calc(10% - 2px) 10%)}
+.sl-thumb{position:absolute;top:50%;left:50%;width:62px;height:62px;margin:-31px 0 0 -31px;pointer-events:none;
+  transform:rotate(var(--rot,0deg)) scale(var(--sc,1));
+  transition:left .12s var(--out),transform .18s var(--snap)}
+.drag .sl-thumb{--sc:1.4;transition:transform .18s var(--snap)}
+.sl-thumb i{position:absolute}
+.th-b{inset:0;background:#000}
+.th-r{inset:9%;background:var(--red)}
+.th-w{inset:33%;background:#fff}
+.sl-val{width:3.4em;font-size:clamp(26px,3vw,40px);text-align:center}
+
+/* ============ ARCHIVE：卡片滑动 ============ */
+.carousel{position:absolute;inset:16vh 0 12vh 0;touch-action:pan-y;cursor:grab}
+.card{position:absolute;left:50%;top:50%;width:min(320px,62vw);height:min(440px,62vh);
+  transition:transform .48s var(--snap),filter .3s,opacity .3s;filter:drop-shadow(10px 10px 0 #000)}
+.card-in{position:absolute;inset:0;background:#000;overflow:hidden;
+  clip-path:polygon(3% 2%,100% 0,96% 98%,0 100%)}
+.card-band{position:absolute;left:-20%;right:-20%;top:12%;height:34%;background:var(--red);transform:rotate(-12deg)}
+.card-band::after{content:"";position:absolute;inset:0;
+  background-image:radial-gradient(rgba(0,0,0,.35) 2px,transparent 2.6px);background-size:12px 12px}
+.card-no{position:absolute;right:6%;top:3%;font-size:min(140px,22vw);font-style:italic;line-height:1;
+  color:transparent;-webkit-text-stroke:3px #fff}
+.card-t{position:absolute;left:7%;bottom:22%;font-size:clamp(24px,3vw,38px)}
+.card-s{position:absolute;left:8%;bottom:9%;font-family:var(--zh);font-weight:900;font-size:18px;
+  background:#fff;color:#000;padding:2px 12px;transform:skewX(-14deg)}
+.card.dim{filter:drop-shadow(10px 10px 0 #000) brightness(.45) grayscale(.4)}
+.car-btn{position:absolute;top:50%;z-index:20;width:70px;height:90px;margin-top:-45px;background:#fff;color:#000;
+  font-size:42px;clip-path:polygon(0 50%,100% 0,78% 50%,100% 100%);transition:transform .2s var(--snap),background .1s}
+.car-btn.next{right:3vw;transform:scaleX(-1)}
+.car-btn.prev{left:3vw}
+.car-btn:hover{background:var(--red)}
+.car-btn.prev:hover{transform:scale(1.2)}
+.car-btn.next:hover{transform:scaleX(-1) scale(1.2)}
+.car-dots{position:absolute;left:50%;bottom:6vh;transform:translateX(-50%) skewX(-15deg);display:flex;gap:10px}
+.car-dots i{width:26px;height:12px;background:#000;transition:width .25s var(--snap),background .2s}
+.car-dots i.on{width:56px;background:#fff;outline:3px solid #000}
+
+/* ============ START：切入演出 ============ */
+.cutin{position:absolute;left:-10%;right:-10%;top:30%;height:36%;transform:rotate(-9deg)}
+.band{position:absolute;inset:0;background:#000;overflow:hidden}
+.band-red{position:absolute;left:0;right:0;top:12%;height:10%;background:var(--red)}
+.band-red.b2{top:auto;bottom:12%}
+.band-text{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(36px,7vw,110px)}
+.bigword{position:absolute;left:50%;top:78%;transform:translate(-50%,-50%) rotate(-9deg);
+  font-size:clamp(70px,14vw,220px);filter:drop-shadow(10px 10px 0 #000)}
+.tap-hint{position:absolute;left:50%;bottom:4vh;transform:translateX(-50%) skewX(-14deg);background:#000;
+  padding:.4em 1.4em;font-family:var(--zh);font-weight:900}
+
+/* ============ 转场 / 特效 / 提示 ============ */
+.wipe{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.wipe i{position:absolute;top:-25%;height:150%;left:0;transform:translateX(-200%) skewX(-20deg)}
+.wipe i:nth-child(1){background:#fff;width:150%}
+.wipe i:nth-child(2){background:var(--red);width:150%}
+.wipe i:nth-child(3){background:#000;width:160%}
+.fx-layer{position:fixed;inset:0;pointer-events:none;z-index:60}
+.fx{position:absolute;width:0;height:0}
+.fx i{position:absolute;left:0;top:0}
+.toast{position:fixed;right:0;top:40%;z-index:40;background:#000;padding:18px 70px 18px 40px;
+  clip-path:polygon(6% 0,100% 0,100% 100%,0 100%);transform:translateX(110%)}
+.toast .ransom{font-size:clamp(28px,4vw,56px)}
+.toast small{display:block;font-family:var(--zh);color:var(--red);margin-top:6px;font-size:16px}
+
+@media (max-width:700px){
+  .bg-slab{width:90%}
+  .menu{width:85vw}
+  .datebox,.bg-word{display:none}
+  .logo{top:4vh}
+  .hintbar{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 背景 -->
+  <div class="bg-burst" id="bgBurst"></div>
+  <div class="bg-dots" id="bgDots"></div>
+  <div class="bg-slab w"></div>
+  <div class="bg-slab b"></div>
+  <div class="bg-word">STYLE</div>
+
+  <!-- 主菜单 -->
+  <section class="screen active" id="scr-main">
+    <div class="logo" id="logo"></div>
+    <div class="datebox"><div class="d-num" id="dNum"></div><div class="d-day" id="dDay"></div></div>
+    <ul class="menu" id="menu">
+      <div class="cursor" id="cursor"><i class="c-red"></i><i class="c-white"></i></div>
+    </ul>
+    <div class="hintbar"><span><b>↑↓</b>选择</span><span><b>ENTER</b>确定</span><span><b>ESC</b>返回</span></div>
+  </section>
+
+  <!-- 设置：滑块 -->
+  <section class="screen" id="scr-config">
+    <div class="scr-title" id="cfgTitle"></div>
+    <div class="cfg-wrap" id="cfgWrap"></div>
+    <button class="btn-back" data-back>✕ BACK</button>
+  </section>
+
+  <!-- 档案：卡片滑动 -->
+  <section class="screen" id="scr-archive">
+    <div class="scr-title" id="arcTitle"></div>
+    <div class="carousel" id="carousel"></div>
+    <button class="car-btn prev" id="carPrev" aria-label="上一张">‹</button>
+    <button class="car-btn next" id="carNext" aria-label="下一张">‹</button>
+    <div class="car-dots" id="carDots"></div>
+    <button class="btn-back" data-back>✕ BACK</button>
+  </section>
+
+  <!-- 开始：切入 -->
+  <section class="screen" id="scr-start">
+    <div class="cutin" id="cutin">
+      <div class="band"><div class="band-red"></div><div class="band-red b2"></div><div class="band-text" id="cutText"></div></div>
+    </div>
+    <div class="bigword" id="bigWord"></div>
+    <div class="tap-hint">点击任意位置 / ESC 返回</div>
+  </section>
+</div>
+
+<div class="wipe" id="wipe"><i></i><i></i><i></i></div>
+<div class="fx-layer" id="fx"></div>
+<div class="toast" id="toast"><div class="ransom" id="toastText"></div><small>NOT SO FAST · 还有事没做完</small></div>
+
+<script>
+/* =========================================================
+   工具
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const settings = { se: 60, shake: reduceMotion ? 0 : 70, dots: 60, speed: 25 };
+
+/* 剪报字：每个字母随机字体、底色、旋转、大小 */
+const FONTS = ['"Arial Black",sans-serif', 'Impact,sans-serif', 'Georgia,serif', '"Times New Roman",serif',
+  '"Courier New",monospace', '"Trebuchet MS",sans-serif', 'Verdana,sans-serif'];
+function ransom(el, text, { boxes = true, rot = 9, jitter = 1 } = {}) {
+  el.textContent = '';
+  el.classList.add('ransom');
+  [...text].forEach((ch, i) => {
+    if (ch === ' ') { const sp = document.createElement('span'); sp.className = 'rl-sp'; el.append(sp); return; }
+    const s = document.createElement('span');
+    s.className = 'rl';
+    s.textContent = ch;
+    s.style.setProperty('--i', i);
+    s.style.setProperty('--r', rand(-rot, rot).toFixed(1) + 'deg');
+    s.style.setProperty('--s', (1 + rand(-.13, .18) * jitter).toFixed(2));
+    s.style.setProperty('--y', rand(-4, 4).toFixed(1) + 'px');
+    s.style.fontFamily = /[一-鿿]/.test(ch) ? 'var(--zh)' : FONTS[Math.floor(Math.random() * FONTS.length)];
+    if (Math.random() < .3) s.style.fontStyle = 'italic';
+    if (boxes) {
+      const t = Math.random();
+      s.dataset.k = i === 0 ? 'red' : t < .42 ? 'black' : t < .84 ? 'white' : 'red';
+    }
+    el.append(s);
+  });
+  return el;
+}
+
+/* 锯齿多边形 / 星形多边形（clip-path 用） */
+const pct = v => v.toFixed(1) + '%';
+function jagPoly() {
+  return `polygon(${pct(rand(0, 4))} ${pct(rand(8, 30))}, ${pct(rand(28, 45))} ${pct(rand(0, 8))}, ${pct(rand(96, 100))} ${pct(rand(0, 12))}, ${pct(rand(91, 100))} ${pct(rand(84, 100))}, ${pct(rand(52, 70))} ${pct(rand(92, 100))}, ${pct(rand(2, 9))} ${pct(rand(78, 100))})`;
+}
+function starPoly(n = 12, inner = .45, wobble = .35) {
+  const p = [];
+  for (let i = 0; i < n * 2; i++) {
+    const a = i / (n * 2) * Math.PI * 2 - Math.PI / 2;
+    const r = (i % 2 ? inner * rand(1 - wobble, 1 + wobble) : rand(.85, 1)) * 50;
+    p.push(`${pct(50 + Math.cos(a) * r)} ${pct(50 + Math.sin(a) * r)}`);
+  }
+  return `polygon(${p.join(',')})`;
+}
+
+/* =========================================================
+   音效（WebAudio 合成，无需音频文件）
+   ========================================================= */
+let actx;
+function sfx(kind) {
+  const v = settings.se / 100;
+  if (!v) return;
+  actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+  const t = actx.currentTime;
+  const g = actx.createGain();
+  g.connect(actx.destination);
+  const tone = (type, f0, f1, dur, vol, delay = 0) => {
+    const o = actx.createOscillator(), gg = actx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t + delay);
+    o.frequency.exponentialRampToValueAtTime(f1, t + delay + dur);
+    gg.gain.setValueAtTime(vol * v, t + delay);
+    gg.gain.exponentialRampToValueAtTime(.0001, t + delay + dur);
+    o.connect(gg).connect(g);
+    o.start(t + delay); o.stop(t + delay + dur + .02);
+  };
+  const noise = (dur, vol, freq) => {
+    const buf = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), gg = actx.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = .8;
+    gg.gain.value = vol * v;
+    src.connect(f).connect(gg).connect(g); src.start(t);
+  };
+  switch (kind) {
+    case 'move': tone('square', 1400, 700, .05, .06); break;
+    case 'tick': tone('triangle', 2200, 1800, .025, .07); break;
+    case 'click': tone('square', 900, 300, .06, .05); noise(.05, .25, 3000); break;
+    case 'ok': tone('square', 660, 660, .07, .08); tone('square', 990, 1320, .14, .08, .07); break;
+    case 'back': tone('sawtooth', 600, 200, .14, .06); break;
+    case 'whoosh': noise(.35, .5, 1200); break;
+    case 'boom': tone('sine', 160, 35, .45, .5); noise(.4, .6, 400); break;
+  }
+}
+
+/* =========================================================
+   点击反馈：爆炸星 + 碎片 + 震屏
+   ========================================================= */
+const fxLayer = $('#fx'), app = $('#app');
+function burst(x, y, big = false) {
+  const wrap = document.createElement('div');
+  wrap.className = 'fx';
+  wrap.style.left = x + 'px'; wrap.style.top = y + 'px';
+  const base = big ? 300 : 130;
+  const layers = [['#000', 1, 12, .38], ['#e5001c', .78, 10, .45], ['#fff', .45, 8, .35]];
+  layers.forEach(([c, k, n, inner], idx) => {
+    const s = document.createElement('i');
+    const size = base * k;
+    Object.assign(s.style, { width: size + 'px', height: size + 'px', margin: `${-size / 2}px 0 0 ${-size / 2}px`, background: c, clipPath: starPoly(n, inner) });
+    wrap.append(s);
+    s.animate([
+      { transform: `scale(0) rotate(${rand(-40, 40)}deg)`, opacity: 1 },
+      { transform: `scale(1.08) rotate(${rand(-10, 10)}deg)`, opacity: 1, offset: .35 },
+      { transform: `scale(1.25) rotate(${rand(-20, 20)}deg)`, opacity: 0 }
+    ], { duration: big ? 620 : 420, delay: idx * 25, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' });
+  });
+  const shards = big ? 14 : 7;
+  for (let i = 0; i < shards; i++) {
+    const s = document.createElement('i');
+    const a = i / shards * 360 + rand(-15, 15);
+    const len = rand(18, big ? 70 : 40), dist = rand(big ? 140 : 60, big ? 280 : 120);
+    Object.assign(s.style, { width: rand(4, 9) + 'px', height: len + 'px', background: Math.random() < .5 ? '#000' : '#fff', marginLeft: '-3px', transformOrigin: '50% 0' });
+    wrap.append(s);
+    s.animate([
+      { transform: `rotate(${a}deg) translateY(10px) scaleY(.3)`, opacity: 1 },
+      { transform: `rotate(${a}deg) translateY(${dist}px) scaleY(1)`, opacity: 0 }
+    ], { duration: rand(380, 560), easing: 'cubic-bezier(.1,.9,.3,1)', fill: 'both' });
+  }
+  fxLayer.append(wrap);
+  setTimeout(() => wrap.remove(), 900);
+}
+function shake(power = 1) {
+  const k = settings.shake / 100 * power;
+  if (k <= 0) return;
+  const f = [];
+  for (let i = 0; i < 7; i++) f.push({ transform: `translate(${rand(-14, 14) * k}px,${rand(-10, 10) * k}px) rotate(${rand(-.8, .8) * k}deg)` });
+  f.push({ transform: 'none' });
+  app.animate(f, { duration: 280, easing: 'steps(8)' });
+}
+/* 全局：任意点击都有小爆炸 */
+addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  burst(e.clientX, e.clientY, false);
+  sfx('click');
+});
+
+/* =========================================================
+   转场：三色斜条横扫
+   ========================================================= */
+let busy = false;
+function wipe(mid) {
+  const bars = [...document.querySelectorAll('#wipe i')];
+  const dur = reduceMotion ? 300 : 720;
+  bars.forEach((b, i) => b.animate([
+    { transform: 'translateX(-200%) skewX(-20deg)' },
+    { transform: 'translateX(-18%) skewX(-20deg)', offset: .5 },
+    { transform: 'translateX(140%) skewX(-20deg)' }
+  ], { duration: dur, delay: i * 60, easing: 'cubic-bezier(.75,0,.25,1)' }));
+  setTimeout(mid, 120 + dur / 2);
+  return new Promise(r => setTimeout(r, dur + 140));
+}
+let current = 'main';
+async function go(id) {
+  if (busy || id === current) return;
+  busy = true;
+  sfx('whoosh');
+  await wipe(() => {
+    document.activeElement && document.activeElement.blur();   // 离开时取消滑块焦点，避免方向键被吞
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('#scr-' + id).classList.add('active');
+    current = id;
+    enter[id] && enter[id]();
+  });
+  busy = false;
+}
+const enter = {};
+
+/* =========================================================
+   主菜单
+   ========================================================= */
+ransom($('#logo'), 'MIDNIGHT HEIST');
+const now = new Date();
+ransom($('#dNum'), `${now.getMonth() + 1}/${now.getDate()}`, { boxes: false, rot: 4 });
+$('#dDay').textContent = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][now.getDay()];
+
+const MENU = [
+  { t: 'START', s: '开始行动', act: () => go('start') },
+  { t: 'CONFIG', s: '设置 · 滑块', act: () => go('config') },
+  { t: 'ARCHIVE', s: '档案 · 卡片', act: () => go('archive') },
+  { t: 'EXIT', s: '离开', act: () => denyExit() },
+];
+const menuEl = $('#menu'), cursorEl = $('#cursor');
+const items = MENU.map((m, i) => {
+  const li = document.createElement('li');
+  li.className = 'item';
+  li.style.top = `calc(${i} * clamp(64px, 13vh, 118px))`;
+  li.style.left = `calc(${i} * 2.6vw)`;
+  const lab = document.createElement('span');
+  ransom(lab, m.t, { boxes: false, rot: 7 });
+  const sub = document.createElement('span');
+  sub.className = 'sub'; sub.textContent = m.s;
+  li.append(lab, sub);
+  li.addEventListener('pointerenter', () => select(i));
+  li.addEventListener('click', () => confirm(i));
+  menuEl.append(li);
+  return li;
+});
+let sel = -1;
+function placeCursor() {
+  const it = items[sel];
+  if (!it) return;
+  const fs = parseFloat(getComputedStyle(it).fontSize);
+  const w = it.offsetWidth * 1.12 + fs * .25;
+  cursorEl.style.left = (it.offsetLeft - 24) + 'px';
+  cursorEl.style.top = (it.offsetTop - fs * .1) + 'px';
+  cursorEl.style.width = (w + 60) + 'px';
+  cursorEl.style.height = (it.offsetHeight * 1.12 + fs * .2) + 'px';
+}
+function select(i, silent) {
+  i = (i + items.length) % items.length;
+  if (i === sel) return;
+  sel = i;
+  items.forEach((el, k) => el.classList.toggle('sel', k === i));
+  cursorEl.querySelector('.c-white').style.clipPath = jagPoly();
+  cursorEl.querySelector('.c-red').style.clipPath = jagPoly();
+  placeCursor();
+  if (!silent) sfx('move');
+}
+function confirm(i) {
+  if (busy) return;
+  const it = items[i];
+  const r = it.getBoundingClientRect();
+  burst(r.left + r.width * .45, r.top + r.height / 2, true);
+  shake(1);
+  sfx('ok');
+  it.animate([{ scale: 1 }, { scale: 1.25 }, { scale: 1 }], { duration: 260, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+  setTimeout(() => MENU[i].act(), 200);
+}
+enter.main = () => {
+  items.forEach((el, i) => el.animate([{ translate: '-80vw 0' }, { translate: '0 0' }],
+    { duration: 480, delay: i * 70, easing: 'cubic-bezier(.2,1.3,.4,1)', fill: 'backwards' }));
+  cursorEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 300, fill: 'backwards' });
+};
+addEventListener('resize', placeCursor);
+
+/* EXIT：不让走 */
+let toastTimer;
+function denyExit() {
+  const t = $('#toast');
+  ransom($('#toastText'), '还不能走！');
+  shake(1.6);
+  sfx('back');
+  t.animate([
+    { transform: 'translateX(110%)' }, { transform: 'translateX(-4%)', offset: .25 },
+    { transform: 'translateX(0)', offset: .35 }, { transform: 'translateX(0)', offset: .8 },
+    { transform: 'translateX(110%)' }
+  ], { duration: 1700, easing: 'cubic-bezier(.2,1,.3,1)' });
+}
+
+/* =========================================================
+   CONFIG：P5 风格滑块
+   ========================================================= */
+ransom($('#cfgTitle'), 'CONFIG');
+const bgSpin = $('#bgBurst').animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 90000, iterations: Infinity });
+function apply(key) {
+  if (key === 'dots') $('#bgDots').style.opacity = settings.dots / 100;
+  if (key === 'speed') bgSpin.playbackRate = settings.speed / 25;
+}
+const SLIDERS = [
+  { key: 'se', label: 'SOUND FX', sub: '音效音量' },
+  { key: 'shake', label: 'IMPACT', sub: '震屏强度' },
+  { key: 'dots', label: 'HALFTONE', sub: '网点浓度' },
+  { key: 'speed', label: 'SPIN', sub: '背景转速' },
+];
+const sliderEls = [];
+function makeSlider({ key, label, sub }) {
+  const host = document.createElement('div');
+  host.className = 'p5s';
+  host.innerHTML = `
+    <div class="sl-head"><div class="sl-label"></div><div class="sl-sub">${sub}</div></div>
+    <div class="sl-row">
+      <div class="sl-track" tabindex="0" role="slider" aria-label="${sub}" aria-valuemin="0" aria-valuemax="100">
+        <div class="sl-bg"><div class="sl-fill"></div><div class="sl-ticks"></div></div>
+        <div class="sl-thumb"><i class="th-b"></i><i class="th-r"></i><i class="th-w"></i></div>
+      </div>
+      <div class="sl-val"></div>
+    </div>`;
+  ransom(host.querySelector('.sl-label'), label);
+  const track = host.querySelector('.sl-track'), fill = host.querySelector('.sl-fill'),
+        thumb = host.querySelector('.sl-thumb'), valEl = host.querySelector('.sl-val');
+  thumb.querySelector('.th-b').style.clipPath = starPoly(9, .55, .2);
+  thumb.querySelector('.th-r').style.clipPath = starPoly(9, .55, .2);
+  thumb.querySelector('.th-w').style.clipPath = starPoly(6, .5, .2);
+
+  let val = -1, dragging = false;
+  function set(v, user) {
+    v = Math.round(clamp(v, 0, 100));
+    if (v === val) return;
+    const prev = val;
+    val = v; settings[key] = v; apply(key);
+    fill.style.width = v + '%';
+    thumb.style.left = v + '%';
+    thumb.style.setProperty('--rot', (v * 3.6) + 'deg');
+    track.setAttribute('aria-valuenow', v);
+    ransom(valEl, String(v).padStart(3, '0'), { rot: 12 });
+    if (!user) return;
+    // 每跨过一个 10 的刻度：咔哒声 + 数字弹一下
+    if (Math.floor(v / 10) !== Math.floor(prev / 10)) {
+      sfx('tick');
+      valEl.animate([{ transform: 'scale(1.5) rotate(-8deg)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+    }
+    // 拉到两端：大爆炸
+    if ((v === 0 || v === 100) && prev !== v) {
+      const r = thumb.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 2, true);
+      shake(.8);
+      sfx('boom');
+    }
+  }
+  const fromEvent = e => {
+    const r = track.getBoundingClientRect();
+    return (e.clientX - r.left) / r.width * 100;
+  };
+  track.addEventListener('pointerdown', e => {
+    dragging = true;
+    track.setPointerCapture(e.pointerId);
+    host.classList.add('drag');
+    set(fromEvent(e), true);
+  });
+  track.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    set(fromEvent(e), true);
+    if (Math.random() < .25) shard(e.clientX, e.clientY);   // 拖动时甩出碎片
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    host.classList.remove('drag');
+    sfx('ok');
+  };
+  track.addEventListener('pointerup', end);
+  track.addEventListener('pointercancel', end);
+  track.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 10 : 5;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { set(val + step, true); e.preventDefault(); e.stopPropagation(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { set(val - step, true); e.preventDefault(); e.stopPropagation(); }
+  });
+  set(settings[key], false);
+  return host;
+}
+/* 拖动时的小碎片 */
+function shard(x, y) {
+  const s = document.createElement('i');
+  Object.assign(s.style, { position: 'absolute', left: x + 'px', top: y + 'px', width: '10px', height: '22px',
+    background: Math.random() < .5 ? '#fff' : '#000', clipPath: 'polygon(50% 0,100% 100%,0 80%)' });
+  fxLayer.append(s);
+  s.animate([
+    { transform: `rotate(${rand(0, 360)}deg)`, opacity: 1 },
+    { transform: `translate(${rand(-60, 60)}px,${rand(30, 90)}px) rotate(${rand(0, 720)}deg)`, opacity: 0 }
+  ], { duration: 500, easing: 'cubic-bezier(.2,.8,.4,1)' }).onfinish = () => s.remove();
+}
+SLIDERS.forEach(cfg => { const el = makeSlider(cfg); $('#cfgWrap').append(el); sliderEls.push(el); });
+enter.config = () => {
+  sliderEls.forEach((el, i) => el.animate([{ translate: (i % 2 ? '' : '-') + '110vw 0' }, { translate: '0 0' }],
+    { duration: 520, delay: 80 + i * 70, easing: 'cubic-bezier(.2,1.25,.4,1)', fill: 'backwards' }));
+  $('#cfgTitle').animate([{ scale: 2.4, opacity: 0 }, { scale: 1, opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.2,1.6,.4,1)', fill: 'backwards' });
+  setTimeout(() => sliderEls[0].querySelector('.sl-track').focus({ preventScroll: true }), 50);
+};
+
+/* =========================================================
+   ARCHIVE：卡片滑动（拖拽 / 滚轮 / 方向键）
+   ========================================================= */
+ransom($('#arcTitle'), 'ARCHIVE');
+const CARDS = [
+  { no: '01', t: 'NIGHT CITY', s: '夜之街' },
+  { no: '02', t: 'RED HOUR', s: '红色时刻' },
+  { no: '03', t: 'THE MASK', s: '面具' },
+  { no: '04', t: 'ESCAPE', s: '脱出' },
+  { no: '05', t: 'LAST CALL', s: '最后通告' },
+];
+const carEl = $('#carousel'), dotsEl = $('#carDots');
+const cardEls = CARDS.map(c => {
+  const d = document.createElement('div');
+  d.className = 'card';
+  d.innerHTML = `<div class="card-in"><div class="card-band"></div><div class="card-no">${c.no}</div><div class="card-t"></div><div class="card-s">${c.s}</div></div>`;
+  ransom(d.querySelector('.card-t'), c.t);
+  carEl.append(d);
+  dotsEl.append(document.createElement('i'));
+  return d;
+});
+let cur = 0;
+function layoutCards() {
+  const gap = Math.min(innerWidth * .3, 340);
+  cardEls.forEach((el, i) => {
+    const d = i - cur, ad = Math.abs(d);
+    el.style.transform = `translate(calc(-50% + ${d * gap}px), -50%) rotate(${d * 7 - 4}deg) scale(${d === 0 ? 1 : .76})`;
+    el.style.zIndex = 10 - ad;
+    el.style.opacity = ad > 2 ? 0 : 1;
+    el.classList.toggle('dim', d !== 0);
+  });
+  [...dotsEl.children].forEach((dot, i) => dot.classList.toggle('on', i === cur));
+}
+function slideTo(n) {
+  n = clamp(n, 0, CARDS.length - 1);
+  if (n === cur) {               // 到头了：抖一下
+    cardEls[cur].animate([{ translate: '0 0' }, { translate: (n === 0 ? '30px' : '-30px') + ' 0' }, { translate: '0 0' }], { duration: 260 });
+    sfx('back');
+    return;
+  }
+  cur = n;
+  layoutCards();
+  sfx('move');
+  slash();
+}
+function slash() {             // 切换时一道白色斜闪
+  const s = document.createElement('i');
+  Object.assign(s.style, { position: 'absolute', left: '-20%', top: '50%', width: '140%', height: '14px', background: '#fff', transform: 'rotate(-12deg)' });
+  fxLayer.append(s);
+  s.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)', offset: .4 }, { clipPath: 'inset(0 0 0 100%)' }],
+    { duration: 300, easing: 'cubic-bezier(.7,0,.3,1)' }).onfinish = () => s.remove();
+}
+$('#carPrev').onclick = () => slideTo(cur - 1);
+$('#carNext').onclick = () => slideTo(cur + 1);
+let dragX = null;
+carEl.addEventListener('pointerdown', e => { dragX = e.clientX; });
+addEventListener('pointerup', e => {
+  if (dragX === null) return;
+  const dx = e.clientX - dragX; dragX = null;
+  if (Math.abs(dx) > 50) slideTo(cur + (dx < 0 ? 1 : -1));
+});
+let wheelLock = 0;
+carEl.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (Date.now() < wheelLock) return;
+  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  if (Math.abs(d) < 8) return;
+  wheelLock = Date.now() + 320;
+  slideTo(cur + (d > 0 ? 1 : -1));
+}, { passive: false });
+cardEls.forEach((el, i) => el.addEventListener('click', () => { if (i !== cur) slideTo(i); }));
+enter.archive = () => {
+  layoutCards();
+  cardEls.forEach((el, i) => el.animate([{ translate: '0 120vh' }, { translate: '0 0' }],
+    { duration: 560, delay: 60 + Math.abs(i - cur) * 80, easing: 'cubic-bezier(.2,1.2,.4,1)', fill: 'backwards' }));
+};
+layoutCards();
+
+/* =========================================================
+   START：切入演出
+   ========================================================= */
+enter.start = () => {
+  ransom($('#cutText'), "IT'S OUR TURN!");
+  ransom($('#bigWord'), 'GO!!');
+  $('#cutin').animate([
+    { transform: 'rotate(-9deg) translateX(-120%) scaleY(.2)' },
+    { transform: 'rotate(-9deg) translateX(3%) scaleY(1)', offset: .55 },
+    { transform: 'rotate(-9deg) translateX(0) scaleY(1)' }
+  ], { duration: 520, easing: 'cubic-bezier(.2,1,.3,1)', fill: 'backwards', delay: 100 });
+  $('#cutText').animate([{ letterSpacing: '1em', opacity: 0 }, { letterSpacing: '0', opacity: 1 }],
+    { duration: 420, delay: 350, easing: 'cubic-bezier(.2,1,.3,1)', fill: 'backwards' });
+  const bw = $('#bigWord');
+  bw.animate([
+    { transform: 'translate(-50%,-50%) rotate(-9deg) scale(6)', opacity: 0 },
+    { transform: 'translate(-50%,-50%) rotate(-9deg) scale(.9)', opacity: 1, offset: .7 },
+    { transform: 'translate(-50%,-50%) rotate(-9deg) scale(1)', opacity: 1 }
+  ], { duration: 380, delay: 760, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'backwards' });
+  setTimeout(() => {
+    const r = bw.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, true);
+    shake(2);
+    sfx('boom');
+  }, 1030);
+};
+$('#scr-start').addEventListener('click', () => { if (!busy) go('main'); });
+
+/* =========================================================
+   键盘 & 返回
+   ========================================================= */
+document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); sfx('back'); go('main'); }));
+addEventListener('keydown', e => {
+  if (busy) return;
+  if (current === 'main') {
+    if (e.key === 'ArrowDown' || e.key === 's') select(sel + 1);
+    if (e.key === 'ArrowUp' || e.key === 'w') select(sel - 1);
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); confirm(sel); }
+    return;
+  }
+  if (e.key === 'Escape' || e.key === 'Backspace') { sfx('back'); go('main'); return; }
+  if (current === 'archive') {
+    if (e.key === 'ArrowRight') slideTo(cur + 1);
+    if (e.key === 'ArrowLeft') slideTo(cur - 1);
+  }
+  if (current === 'config' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    const tracks = [...document.querySelectorAll('.sl-track')];
+    let i = tracks.indexOf(document.activeElement);
+    i = clamp(i + (e.key === 'ArrowDown' ? 1 : -1), 0, tracks.length - 1);
+    tracks[i].focus(); sfx('move'); e.preventDefault();
+  }
+});
+
+/* 启动 */
+select(0, true);
+enter.main();
+</script>
+</body>
+</html>
