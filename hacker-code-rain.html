@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Code Rain</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; }
+
+  /* CRT scanlines + vignette for that 90's monitor feel */
+  .crt {
+    pointer-events: none;
+    position: fixed; inset: 0;
+    background:
+      repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,.25) 3px),
+      radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.75) 100%);
+  }
+
+  #status {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font: bold 22px "Courier New", monospace;
+    color: #3f3;
+    letter-spacing: 4px;
+    padding: 12px 22px;
+    border: 2px solid #3f3;
+    background: rgba(0,0,0,.8);
+    text-shadow: 0 0 8px #3f3;
+    box-shadow: 0 0 18px rgba(51,255,51,.5);
+    display: none;
+    pointer-events: none;
+  }
+  #status.show { display: block; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #hint {
+    position: fixed; bottom: 14px; width: 100%; text-align: center;
+    font: 13px "Courier New", monospace; color: #1a7a1a;
+    pointer-events: none; transition: opacity 1s;
+  }
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<div class="crt"></div>
+<div id="status">&gt; SYSTEM PAUSED_</div>
+<div id="hint">[ tap screen to stop / restart ]</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('rain');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const hintEl = document.getElementById('hint');
+
+  // Characters: katakana, digits, latin, symbols
+  const CHARS =
+    'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン' +
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+    '<>{}[]()/\\|=+-*&^%$#@!?;:';
+  const randChar = () => CHARS[(Math.random() * CHARS.length) | 0];
+
+  const FONT_SIZE = 18;
+  let cols = 0, rows = 0, drops = [], speeds = [];
+  let width = 0, height = 0;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+
+    cols = Math.ceil(width / FONT_SIZE);
+    rows = Math.ceil(height / FONT_SIZE);
+    const oldDrops = drops;
+    drops = []; speeds = [];
+    for (let i = 0; i < cols; i++) {
+      drops[i] = oldDrops[i] !== undefined ? oldDrops[i] : Math.random() * -rows;
+      speeds[i] = 0.4 + Math.random() * 0.8;   // each column falls at its own pace
+    }
+  }
+
+  function draw() {
+    // Translucent black wash leaves fading green trails
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.07)';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.font = FONT_SIZE + 'px "Courier New", monospace';
+    ctx.textBaseline = 'top';
+
+    for (let i = 0; i < cols; i++) {
+      const x = i * FONT_SIZE;
+      const y = Math.floor(drops[i]) * FONT_SIZE;
+
+      // The body character just above the head, in classic green
+      ctx.fillStyle = '#0f0';
+      ctx.shadowBlur = 0;
+      ctx.fillText(randChar(), x, y - FONT_SIZE);
+
+      // The bright, glowing leading character
+      ctx.fillStyle = '#ccffcc';
+      ctx.shadowColor = '#0f0';
+      ctx.shadowBlur = 10;
+      ctx.fillText(randChar(), x, y);
+
+      // Occasionally flicker a random character mid-stream
+      if (Math.random() < 0.02) {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#0a0';
+        ctx.fillText(randChar(), x, Math.floor(Math.random() * rows) * FONT_SIZE);
+      }
+
+      drops[i] += speeds[i];
+      if (y > height && Math.random() > 0.975) {
+        drops[i] = Math.random() * -20;
+        speeds[i] = 0.4 + Math.random() * 0.8;
+      }
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // ~30 fps for that chunky retro feel
+  let running = true, last = 0, rafId = 0;
+  const FRAME_MS = 33;
+  function loop(t) {
+    if (t - last >= FRAME_MS) { draw(); last = t; }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function toggle() {
+    running = !running;
+    if (running) {
+      statusEl.classList.remove('show');
+      rafId = requestAnimationFrame(loop);
+    } else {
+      cancelAnimationFrame(rafId);
+      statusEl.classList.add('show');
+    }
+    hintEl.style.opacity = 0;
+  }
+
+  // pointerdown covers mouse, touch and pen with a single event
+  window.addEventListener('pointerdown', toggle);
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); toggle(); }
+  });
+  window.addEventListener('resize', resize);
+
+  setTimeout(() => hintEl.style.opacity = 0, 4000);
+
+  resize();
+  rafId = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
