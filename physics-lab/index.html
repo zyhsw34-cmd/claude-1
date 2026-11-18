@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laboratorio di Ohm</title>
+<style>
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --panel2:#f0eee8; --ink:#1d1f24; --muted:#6b6f78; --line:#d9d6cc;
+  --accent:#2f6bdb; --accent-soft:rgba(47,107,219,.14); --flow:#2f6bdb;
+  --ok:#1f8a4c; --warn:#c2410c; --bad:#b91c1c; --bulb:#f5b301; --lcd:#e9f3e4; --lcd-ink:#20402a;
+  --grid:#c9c5b9; --plus:#b91c1c;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171c; --panel:#1e2128; --panel2:#262a33; --ink:#e8e9ec; --muted:#9aa0ab; --line:#353a45;
+    --accent:#6fa1ff; --accent-soft:rgba(111,161,255,.18); --flow:#7fb0ff;
+    --ok:#4ade80; --warn:#fb923c; --bad:#f87171; --bulb:#ffcc33; --lcd:#1f3326; --lcd-ink:#b9f5c8;
+    --grid:#3d4350; --plus:#f87171;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171c; --panel:#1e2128; --panel2:#262a33; --ink:#e8e9ec; --muted:#9aa0ab; --line:#353a45;
+  --accent:#6fa1ff; --accent-soft:rgba(111,161,255,.18); --flow:#7fb0ff;
+  --ok:#4ade80; --warn:#fb923c; --bad:#f87171; --bulb:#ffcc33; --lcd:#1f3326; --lcd-ink:#b9f5c8;
+  --grid:#3d4350; --plus:#f87171;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
+header .sub{color:var(--muted);font-size:13px}
+nav.tabs{display:flex;gap:4px;margin-left:auto}
+nav.tabs button{border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:7px 14px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px}
+nav.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:1320px;margin:0 auto;padding:16px}
+section.tab{display:none}
+section.tab.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h2{font-size:15px;margin:0 0 10px}
+.card h3{font-size:14px;margin:12px 0 6px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+button.btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:6px 11px;border-radius:8px;cursor:pointer;font:inherit;font-size:13.5px}
+button.btn:hover{border-color:var(--accent)}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.btn.danger{color:var(--bad)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type=number],input[type=text],select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:inherit;font-size:14px;width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* LAB layout */
+.lab{display:grid;grid-template-columns:150px minmax(0,1fr) 330px;gap:14px;align-items:start}
+.palette{display:flex;flex-direction:column;gap:6px}
+.palette button{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 9px;border-radius:9px;cursor:pointer;font:inherit;font-size:13.5px}
+.palette button svg{flex:none}
+.palette button.on{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.palette .sep{height:1px;background:var(--line);margin:4px 0}
+.palette label{font-size:12px;color:var(--muted);margin-top:4px}
+.board-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;position:relative}
+#board{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none}
+.banner{display:none;margin:0 0 8px;padding:8px 12px;border-radius:8px;background:rgba(185,28,28,.12);color:var(--bad);font-weight:600;font-size:14px}
+.banner.on{display:block}
+.hint{font-size:12.5px;color:var(--muted);padding:6px 4px 2px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.side{display:flex;flex-direction:column;gap:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14px}
+.kv b{font-variant-numeric:tabular-nums}
+.check{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--panel2);font-size:13.5px;font-variant-numeric:tabular-nums}
+.field{margin:8px 0}
+.field .lbl{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:3px}
+.field .pair{display:grid;grid-template-columns:1fr 84px;gap:8px;align-items:center}
+.ch{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:5px 0}
+.ch .dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;margin-top:1px}
+.ch.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
+table.log{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+table.log th,table.log td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}
+table.log th:first-child,table.log td:first-child{text-align:left}
+.logwrap{max-height:240px;overflow:auto;margin-top:8px}
+canvas#chart{width:100%;height:260px;display:block;background:var(--panel2);border-radius:8px;margin-top:8px}
+
+/* SVG */
+.hit{stroke:transparent;stroke-width:20;stroke-linecap:round;cursor:pointer}
+.hit:hover{stroke:var(--accent-soft)}
+.nodehit{fill:transparent;cursor:pointer}
+.nodehit:hover{fill:var(--accent-soft)}
+.flow{fill:none;stroke:var(--flow);stroke-width:4.5;stroke-linecap:round;stroke-dasharray:0 16;animation:flow linear infinite;pointer-events:none;opacity:.9}
+@keyframes flow{to{stroke-dashoffset:-32}}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
+
+/* Formulas */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.formula{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:21px;text-align:center;padding:10px 6px;background:var(--panel2);border-radius:8px;margin:6px 0 8px}
+.formula sub{font-size:.65em}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 3px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+.card ul{margin:4px 0;padding-left:18px}
+.card li{margin:2px 0;font-size:13.5px}
+.calc{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px;align-items:center;font-size:14px}
+.result{margin-top:8px;font-size:14px;font-variant-numeric:tabular-nums}
+
+/* Quiz */
+.quiz{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start}
+.qtext{font-size:16px;margin:8px 0 12px}
+.fb{margin-top:10px;padding:10px;border-radius:8px;font-size:14px;display:none}
+.fb.on{display:block}
+.fb.good{background:rgba(31,138,76,.12)}
+.fb.badf{background:rgba(185,28,28,.10)}
+.score{font-variant-numeric:tabular-nums;font-weight:600}
+details.flash{border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin:7px 0;background:var(--panel2)}
+details.flash summary{cursor:pointer;font-size:14px}
+details.flash p{margin:8px 0 2px;font-size:13.5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips label{font-size:13px;border:1px solid var(--line);padding:3px 8px;border-radius:99px;cursor:pointer;background:var(--panel2)}
+
+@media (max-width:1080px){
+  .lab{grid-template-columns:130px minmax(0,1fr)}
+  .side{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr}
+}
+@media (max-width:720px){
+  main{padding:12px 16px}
+  .lab{grid-template-columns:1fr}
+  .palette{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .palette button{flex:none}
+  .palette .sep,.palette label{display:none}
+  .side{grid-template-columns:1fr}
+  .lower,.quiz{grid-template-columns:1fr}
+  nav.tabs{margin-left:0;width:100%}
+  nav.tabs button{flex:1}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⚡ Laboratorio di Ohm <span class="muted" style="font-weight:400">· 欧姆定律实验室</span></h1>
+    <div class="sub">Basato sulle tue note: Leggi di Ohm · Serie e parallelo · Kirchhoff · Effetto Joule</div>
+  </div>
+  <nav class="tabs">
+    <button data-tab="lab" class="on">🔬 Laboratorio</button>
+    <button data-tab="formule">📘 Formule</button>
+    <button data-tab="quiz">✏️ Quiz</button>
+  </nav>
+</header>
+
+<main>
+<!-- ================= LAB ================= -->
+<section class="tab on" id="tab-lab">
+  <div class="lab">
+    <div class="palette" id="palette"></div>
+
+    <div>
+      <div class="board-wrap">
+        <div class="banner" id="banner"></div>
+        <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="hint" id="hint"></div>
+      </div>
+      <div class="presets">
+        <span class="muted small" style="align-self:center">Circuiti pronti 现成电路:</span>
+        <button class="btn" data-preset="note">Esempio note: R₁ + (R₂∥R₃)</button>
+        <button class="btn" data-preset="ohm">Misura R (grafico ΔV–i)</button>
+        <button class="btn" data-preset="serie">Lampadine in serie</button>
+        <button class="btn" data-preset="par">Lampadine in parallelo</button>
+        <button class="btn danger" data-preset="clear">🗑 Svuota</button>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card" id="inspector"></div>
+      <div class="card">
+        <h2>Riepilogo circuito 电路总览</h2>
+        <div id="summary" class="kv"></div>
+      </div>
+      <div class="card">
+        <h2>🎯 Sfide 挑战</h2>
+        <div id="challenges"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lower">
+    <div class="card">
+      <h2>📋 Registro dati 数据记录</h2>
+      <div class="row">
+        <button class="btn primary" id="rec">● Registra misura</button>
+        <button class="btn" id="sweep" title="Varia la f.e.m. del generatore da 0 al valore attuale e registra 7 misure">↗ Sweep f.e.m. automatico</button>
+        <button class="btn" id="csv">⬇ CSV</button>
+        <button class="btn danger" id="clearlog">Cancella</button>
+      </div>
+      <div class="small muted" style="margin-top:6px">Ogni riga salva le letture di tutti gli strumenti (voltmetri V, amperometri A). 每次记录所有电表读数。</div>
+      <div class="logwrap"><table class="log" id="logtable"></table></div>
+    </div>
+    <div class="card">
+      <h2>📈 Grafico 图像</h2>
+      <div class="row">
+        <span class="small muted">asse x</span><select id="xsel" style="width:auto"></select>
+        <span class="small muted">asse y</span><select id="ysel" style="width:auto"></select>
+      </div>
+      <canvas id="chart"></canvas>
+      <div class="small" id="fit" style="margin-top:6px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FORMULE ================= -->
+<section class="tab" id="tab-formule">
+  <div class="fgrid">
+    <div class="card">
+      <h2>Intensità di corrente 电流强度</h2>
+      <div class="formula">i = <span class="frac"><span>Δq</span><span>Δt</span></span></div>
+      <ul><li>i in ampere (A) = C/s; Δq in coulomb (C); Δt in s</li>
+      <li>Verso convenzionale: dalle cariche positive, dal potenziale alto al basso（电子实际方向相反）</li></ul>
+    </div>
+    <div class="card">
+      <h2>Prima legge di Ohm 欧姆第一定律</h2>
+      <div class="formula">ΔV = R · i &nbsp;⟺&nbsp; i = <span class="frac"><span>ΔV</span><span>R</span></span></div>
+      <ul><li>R in ohm (Ω) = V/A — è una proprietà del conduttore, non cambia con ΔV</li>
+      <li>Grafico ΔV–i: retta per l'origine, pendenza = R（在实验室用“Sweep”画出来！）</li>
+      <li>Vale solo per i <b>conduttori ohmici</b></li></ul>
+    </div>
+    <div class="card">
+      <h2>Seconda legge di Ohm 欧姆第二定律</h2>
+      <div class="formula">R = ρ · <span class="frac"><span>L</span><span>S</span></span></div>
+      <div class="formula" style="font-size:17px">ρ = ρ<sub>0</sub> (1 + α ΔT)</div>
+      <ul><li>ρ resistività (Ω·m), L lunghezza (m), S sezione (m²; 1 mm² = 10⁻⁶ m²)</li>
+      <li>L ×2 e S ÷2 → R ×4</li></ul>
+    </div>
+    <div class="card">
+      <h2>Serie e parallelo 串联与并联</h2>
+      <div class="formula" style="font-size:18px">Serie: R<sub>eq</sub> = R<sub>1</sub> + R<sub>2</sub> + R<sub>3</sub></div>
+      <div class="formula" style="font-size:18px">Parallelo: <span class="frac"><span>1</span><span>R<sub>eq</sub></span></span> = <span class="frac"><span>1</span><span>R<sub>1</sub></span></span> + <span class="frac"><span>1</span><span>R<sub>2</sub></span></span> + <span class="frac"><span>1</span><span>R<sub>3</sub></span></span></div>
+      <ul><li>Serie: stessa <b>i</b>; parallelo: stessa <b>ΔV</b></li>
+      <li>In parallelo R<sub>eq</sub> &lt; della resistenza più piccola; non dimenticare il reciproco!</li>
+      <li>Condensatori: formule scambiate (serie → 1/C, parallelo → somma)</li></ul>
+    </div>
+    <div class="card">
+      <h2>Leggi di Kirchhoff 基尔霍夫定律</h2>
+      <div class="formula" style="font-size:18px">Nodi: Σ i<sub>entranti</sub> = Σ i<sub>uscenti</sub></div>
+      <div class="formula" style="font-size:18px">Maglie: Σ ΔV = 0</div>
+      <ul><li>Nel laboratorio: strumento Selezione → clicca un <b>nodo</b> per vedere la legge dei nodi</li>
+      <li>Lungo il verso della corrente il potenziale scende: V<sub>A</sub> − V<sub>B</sub> = R i</li></ul>
+    </div>
+    <div class="card">
+      <h2>Potenza ed effetto Joule 电功率与焦耳效应</h2>
+      <div class="formula" style="font-size:19px">P = ΔV·i = R i² = <span class="frac"><span>ΔV²</span><span>R</span></span></div>
+      <div class="formula" style="font-size:17px">E = P · Δt &nbsp; · &nbsp; 1 kWh = 3,6 × 10⁶ J</div>
+      <ul><li>Serie (stessa i) → usa R i² → R più grande scalda di più</li>
+      <li>Parallelo (stessa ΔV) → usa ΔV²/R → R più piccola scalda di più</li></ul>
+    </div>
+
+    <div class="card">
+      <h2>🧮 Calcolatrice di Ohm</h2>
+      <div class="small muted">Inserisci due valori qualsiasi, lascia vuoto il resto. 任填两个。</div>
+      <div class="calc" style="margin-top:8px">
+        <span>ΔV</span><input type="text" id="oV" inputmode="decimal"><span>V</span>
+        <span>R</span><input type="text" id="oR" inputmode="decimal"><span>Ω</span>
+        <span>i</span><input type="text" id="oI" inputmode="decimal"><span>A</span>
+        <span>P</span><input type="text" id="oP" inputmode="decimal"><span>W</span>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="ocalc">Calcola</button><button class="btn" id="oclr">Pulisci</button></div>
+      <div class="result" id="ores"></div>
+    </div>
+
+    <div class="card">
+      <h2>🧵 Calcolatrice seconda legge</h2>
+      <div class="calc">
+        <span>Materiale</span><select id="mat"></select><span></span>
+        <span>L</span><input type="text" id="sL" value="10" inputmode="decimal"><span>m</span>
+        <span>S</span><input type="text" id="sS" value="0,5" inputmode="decimal"><span>mm²</span>
+        <span>ΔT</span><input type="text" id="sT" value="0" inputmode="decimal"><span>K</span>
+      </div>
+      <div class="result" id="sres"></div>
+      <button class="btn" id="sapply" style="margin-top:8px">→ Usa come R del componente selezionato nel lab</button>
+      <div class="small muted" id="sapplyinfo" style="margin-top:4px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section class="tab" id="tab-quiz">
+  <div class="quiz">
+    <div class="card">
+      <h2>Esercizi numerici casuali 随机计算题</h2>
+      <div class="chips" id="qtypes"></div>
+      <div class="qtext" id="qtext"></div>
+      <div class="row">
+        <input type="text" id="qans" inputmode="decimal" placeholder="Risposta" style="max-width:180px">
+        <span id="qunit" class="muted"></span>
+        <button class="btn primary" id="qcheck">Verifica</button>
+        <button class="btn" id="qsol">Soluzione</button>
+        <button class="btn" id="qnext">Nuovo →</button>
+      </div>
+      <div class="small muted" style="margin-top:6px">Tolleranza ±2 %. Puoi usare la virgola (es. 0,25). Punteggio: <span class="score" id="qscore">0 / 0</span></div>
+      <div class="fb" id="qfb"></div>
+    </div>
+    <div class="card">
+      <h2>Autoverifica dalle note 笔记自测</h2>
+      <div id="flash"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+(() => {
+"use strict";
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const num = s => { if (s == null) return NaN; s = String(s).trim().replace(/\s/g,'').replace(',', '.'); if (s === '') return NaN; return Number(s); };
+function fmt(x, unit, sig = 3) {
+  if (!isFinite(x)) return '—';
+  x = Number(x.toPrecision(sig));
+  const ax = Math.abs(x);
+  let p = '', v = x;
+  if (ax === 0 || ax < 1e-9) { v = 0; }
+  else if (ax >= 1e6) { v = x / 1e6; p = 'M'; }
+  else if (ax >= 1e4) { v = x / 1e3; p = 'k'; }
+  else if (ax < 1e-3) { v = x * 1e6; p = 'µ'; }
+  else if (ax < 1) { v = x * 1e3; p = 'm'; }
+  let s = v === 0 ? '0' : Number(v.toPrecision(sig)).toString();
+  return s.replace('.', ',') + ' ' + p + unit;
+}
+const fnum = (x, sig = 3) => isFinite(x) ? Number(x.toPrecision(sig)).toString().replace('.', ',') : '—';
+
+/* ---------------- grid ---------------- */
+const COLS = 11, ROWS = 7, SP = 64, M = 46;
+const W = M * 2 + SP * (COLS - 1), H = M * 2 + SP * (ROWS - 1);
+const nid = (c, r) => r * COLS + c;
+const px = id => M + (id % COLS) * SP;
+const py = id => M + Math.floor(id / COLS) * SP;
+const ekey = (a, b) => a < b ? a + '-' + b : b + '-' + a;
+const EDGES = [];
+for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+  if (c < COLS - 1) EDGES.push([nid(c, r), nid(c + 1, r)]);
+  if (r < ROWS - 1) EDGES.push([nid(c, r), nid(c, r + 1)]);
+}
+
+/* ---------------- component types ---------------- */
+const TYPES = {
+  wire: { name: 'Filo', zh: '导线' },
+  res:  { name: 'Resistenza', zh: '电阻', prefix: 'R' },
+  bulb: { name: 'Lampadina', zh: '小灯泡', prefix: 'L' },
+  batt: { name: 'Generatore', zh: '电源', prefix: 'G' },
+  sw:   { name: 'Interruttore', zh: '开关', prefix: 'S' },
+  amm:  { name: 'Amperometro', zh: '电流表', prefix: 'A' },
+  volt: { name: 'Voltmetro', zh: '电压表', prefix: 'V' },
+};
+const R_WIRE = 1e-6, R_AMM = 1e-6, R_VOLT = 1e7, SHORT_I = 50;
+
+let comps = new Map();        // key -> comp
+let tool = 'wire';
+let sel = null;               // {kind:'comp', key} | {kind:'node', id}
+let result = null;
+let log = [];
+
+function nextLabel(prefix) {
+  const used = new Set([...comps.values()].map(c => c.label));
+  for (let n = 1; ; n++) if (!used.has(prefix + n)) return prefix + n;
+}
+function makeComp(type, a, b, props = {}) {
+  const [x, y] = a < b ? [a, b] : [b, a];
+  const c = { type, a: x, b: y, flip: false };
+  if (type === 'res') c.R = 10;
+  if (type === 'bulb') { c.R = 6; c.Pnom = 24; c.burnt = false; }
+  if (type === 'batt') { c.E = 12; c.r = 0; }
+  if (type === 'sw') c.closed = true;
+  Object.assign(c, props);
+  if (TYPES[type].prefix && !c.label) c.label = nextLabel(TYPES[type].prefix);
+  return c;
+}
+function place(type, a, b, props) {
+  const k = ekey(a, b);
+  const old = comps.get(k);
+  if (old) comps.delete(k);
+  const c = makeComp(type, a, b, props);
+  comps.set(k, c);
+  return k;
+}
+
+/* ---------------- solver (Modified Nodal Analysis) ---------------- */
+function solveOnce() {
+  const list = [...comps.entries()];
+  const res = { V: new Map(), c: new Map(), short: false, empty: list.length === 0 };
+  if (!list.length) return res;
+  // choose reference node: negative terminal of first generator
+  const firstBatt = list.find(([, c]) => c.type === 'batt');
+  const idx = new Map(); let n = 0;
+  const I = id => { if (!idx.has(id)) idx.set(id, n++); return idx.get(id); };
+  if (firstBatt) { const c = firstBatt[1]; I(c.flip ? c.a : c.b); }
+  list.forEach(([, c]) => { I(c.a); I(c.b); });
+  const rs = [], vs = [];
+  for (const [k, c] of list) {
+    const na = I(c.a), nb = I(c.b);
+    switch (c.type) {
+      case 'wire': rs.push({ k, p: na, q: nb, R: R_WIRE }); break;
+      case 'amm': rs.push({ k, p: na, q: nb, R: R_AMM }); break;
+      case 'volt': rs.push({ k, p: na, q: nb, R: R_VOLT }); break;
+      case 'res': rs.push({ k, p: na, q: nb, R: Math.max(c.R, 1e-6) }); break;
+      case 'bulb': if (!c.burnt) rs.push({ k, p: na, q: nb, R: Math.max(c.R, 1e-6) }); break;
+      case 'sw': if (c.closed) rs.push({ k, p: na, q: nb, R: R_WIRE }); break;
+      case 'batt': {
+        const pos = c.flip ? nb : na, neg = c.flip ? na : nb;
+        if (c.r > 0) { const mid = n++; rs.push({ k, p: pos, q: mid, R: c.r, internal: true }); vs.push({ k, p: mid, q: neg, E: c.E, pos, neg }); }
+        else vs.push({ k, p: pos, q: neg, E: c.E, pos, neg });
+        break;
+      }
+    }
+  }
+  // connected sub-circuits: each gets its own reference node (V = 0), so floating parts stay solvable
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = i => parent[i] === i ? i : (parent[i] = find(parent[i]));
+  const join = (p, q) => { const a = find(p), b = find(q); if (a !== b) parent[Math.max(a, b)] = Math.min(a, b); };
+  rs.forEach(e => join(e.p, e.q)); vs.forEach(v => join(v.p, v.q));
+  const map = new Int32Array(n).fill(-1); let nn = 0;
+  for (let i = 0; i < n; i++) if (find(i) !== i) map[i] = nn++;   // roots are references
+  const N = nn + vs.length;
+  const A = Array.from({ length: N }, () => new Float64Array(N + 1));
+  const ix = node => map[node];
+  const addG = (p, q, g) => {
+    const a = ix(p), b = ix(q);
+    if (a >= 0) A[a][a] += g;
+    if (b >= 0) A[b][b] += g;
+    if (a >= 0 && b >= 0) { A[a][b] -= g; A[b][a] -= g; }
+  };
+  rs.forEach(e => addG(e.p, e.q, 1 / e.R));
+  vs.forEach((v, j) => {
+    const r = nn + j, a = ix(v.p), b = ix(v.q);
+    if (a >= 0) { A[a][r] += 1; A[r][a] += 1; }
+    if (b >= 0) { A[b][r] -= 1; A[r][b] -= 1; }
+    A[r][N] = v.E;
+  });
+  // Gaussian elimination with partial pivoting
+  let singular = false;
+  for (let col = 0; col < N; col++) {
+    let best = col;
+    for (let r = col + 1; r < N; r++) if (Math.abs(A[r][col]) > Math.abs(A[best][col])) best = r;
+    if (Math.abs(A[best][col]) < 1e-12) { singular = true; break; }
+    if (best !== col) { const t = A[best]; A[best] = A[col]; A[col] = t; }
+    for (let r = 0; r < N; r++) {
+      if (r === col) continue;
+      const f = A[r][col] / A[col][col];
+      if (f !== 0) for (let k = col; k <= N; k++) A[r][k] -= f * A[col][k];
+    }
+  }
+  if (singular) { res.short = true; res.singular = true; return res; }
+  const x = new Float64Array(N);
+  for (let i = 0; i < N; i++) x[i] = A[i][N] / A[i][i];
+  const volt = node => ix(node) < 0 ? 0 : x[ix(node)];
+  for (const [id, node] of idx) if (id >= 0) res.V.set(id, volt(node));
+  for (const [k, c] of list) {
+    const va = volt(I(c.a)), vb = volt(I(c.b));
+    const o = { vab: va - vb, iab: 0, P: 0 };
+    if (c.type === 'batt') {
+      const v = vs.find(v => v.k === k), j = vs.indexOf(v);
+      const Iq = x[nn + j];          // current through source from + to − (internal)
+      const idel = -Iq;              // current delivered out of + terminal
+      o.iab = (v.pos === I(c.a)) ? Iq : -Iq;
+      o.idel = idel; o.Pgen = c.E * idel; o.Pr = c.r * idel * idel;
+      o.vterm = volt(v.pos) - volt(v.neg);
+      if (Math.abs(idel) > SHORT_I) res.short = true;
+    } else {
+      const e = rs.find(e => e.k === k);
+      if (e) { o.iab = (va - vb) / e.R; o.P = o.vab * o.iab; }
+      if ((c.type === 'wire' || c.type === 'amm' || c.type === 'sw') && Math.abs(o.iab) > SHORT_I) res.short = true;
+    }
+    res.c.set(k, o);
+  }
+  return res;
+}
+function solve() {
+  let r;
+  for (let it = 0; it < 12; it++) {
+    r = solveOnce();
+    let changed = false;
+    for (const [k, c] of comps) if (c.type === 'bulb' && !c.burnt) {
+      const o = r.c.get(k);
+      if (o && o.P > 2 * c.Pnom && !r.short) { c.burnt = true; changed = true; }
+    }
+    if (!changed) break;
+  }
+  return r;
+}
+
+/* ---------------- rendering ---------------- */
+const board = $('#board');
+board.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+function symbol(c, k, o) {
+  const L = SP / 2, stroke = 'var(--ink)';
+  let s = '';
+  const lead = (x1, x2) => `<line x1="${x1}" y1="0" x2="${x2}" y2="0" stroke="${stroke}" stroke-width="2.4" stroke-linecap="round"/>`;
+  switch (c.type) {
+    case 'wire': s = lead(-L, L); break;
+    case 'res':
+      s = lead(-L, -15) + lead(15, L) + `<rect x="-15" y="-7" width="30" height="14" rx="1.5" fill="var(--panel)" stroke="${stroke}" stroke-width="2.2"/>`;
+      break;
+    case 'bulb': {
+      const P = o ? o.P : 0, b = c.burnt ? 0 : Math.max(0, Math.min(1.4, P / c.Pnom));
+      s = lead(-L, -12) + lead(12, L);
+      if (b > 0.01) s += `<circle r="${16 + 14 * Math.min(b, 1.4)}" fill="url(#glow)" opacity="${Math.min(1, b)}"/>`;
+      const fill = c.burnt ? 'var(--panel2)' : `color-mix(in srgb, var(--bulb) ${Math.round(Math.min(1, b) * 100)}%, var(--panel))`;
+      s += `<circle r="12" fill="${fill}" stroke="${c.burnt ? 'var(--bad)' : stroke}" stroke-width="2.2"/>`;
+      if (c.burnt) s += `<path d="M-8 -8 L-2 -1 M2 1 L8 8 M8 -8 L2 -2 M-2 2 L-8 8" stroke="var(--bad)" stroke-width="2"/>`;
+      else s += `<path d="M-8.5 -8.5 L8.5 8.5 M8.5 -8.5 L-8.5 8.5" stroke="${stroke}" stroke-width="1.8"/>`;
+      break;
+    }
+    case 'batt':
+      s = `<g transform="scale(${c.flip ? -1 : 1},1)">` + lead(-L, -5) + lead(5, L) +
+        `<rect x="-6" y="-16" width="12" height="32" fill="var(--panel)"/>` +
+        `<line x1="-5" y1="-15" x2="-5" y2="15" stroke="${stroke}" stroke-width="2.4"/>` +
+        `<line x1="5" y1="-8" x2="5" y2="8" stroke="${stroke}" stroke-width="5"/>` +
+        `<path d="M-17 -12 h8 M-13 -16 v8" stroke="var(--plus)" stroke-width="2"/></g>`;
+      break;
+    case 'sw':
+      s = lead(-L, -12) + lead(12, L) +
+        `<circle cx="-12" r="3" fill="var(--panel)" stroke="${stroke}" stroke-width="2"/><circle cx="12" r="3" fill="var(--panel)" stroke="${stroke}" stroke-width="2"/>` +
+        (c.closed ? `<line x1="-12" y1="0" x2="12" y2="0" stroke="${stroke}" stroke-width="2.6" stroke-linecap="round"/>`
+                  : `<line x1="-12" y1="0" x2="9" y2="-14" stroke="${stroke}" stroke-width="2.6" stroke-linecap="round"/>`);
+      break;
+    case 'amm': case 'volt':
+      s = lead(-L, -14) + lead(14, L) + `<circle r="14" fill="var(--panel)" stroke="${c.type === 'amm' ? 'var(--warn)' : 'var(--ok)'}" stroke-width="2.4"/>` +
+        `<g transform="scale(${c.flip ? -1 : 1},1)"><path d="M-25 -9 h6 M-22 -12 v6" stroke="var(--plus)" stroke-width="1.8"/></g>`;
+      break;
+  }
+  return s;
+}
+
+function render() {
+  const r = result;
+  const sk = sel && sel.kind === 'comp' ? sel.key : null;
+  let s = `<defs><radialGradient id="glow"><stop offset="0" stop-color="var(--bulb)" stop-opacity=".85"/><stop offset="1" stop-color="var(--bulb)" stop-opacity="0"/></radialGradient></defs>`;
+  // grid dots
+  const deg = new Map();
+  for (const c of comps.values()) { deg.set(c.a, (deg.get(c.a) || 0) + 1); deg.set(c.b, (deg.get(c.b) || 0) + 1); }
+  for (let id = 0; id < COLS * ROWS; id++) if (!deg.has(id)) s += `<circle cx="${px(id)}" cy="${py(id)}" r="2.2" fill="var(--grid)"/>`;
+  // hit lines
+  for (const [a, b] of EDGES) {
+    const k = ekey(a, b), t = 13, hor = py(a) === py(b);
+    const x1 = px(a) + (hor ? t : 0), y1 = py(a) + (hor ? 0 : t), x2 = px(b) - (hor ? t : 0), y2 = py(b) - (hor ? 0 : t);
+    s += `<line class="hit" data-key="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }
+  // selection halo
+  if (sk && comps.has(sk)) {
+    const c = comps.get(sk);
+    s += `<line x1="${px(c.a)}" y1="${py(c.a)}" x2="${px(c.b)}" y2="${py(c.b)}" stroke="var(--accent)" stroke-opacity=".28" stroke-width="26" stroke-linecap="round" pointer-events="none"/>`;
+  }
+  // components
+  let labels = '', flows = '', syms = '';
+  for (const [k, c] of comps) {
+    const o = r && r.c.get(k);
+    const mx = (px(c.a) + px(c.b)) / 2, my = (py(c.a) + py(c.b)) / 2, hor = py(c.a) === py(c.b);
+    syms += `<g transform="translate(${mx},${my}) rotate(${hor ? 0 : 90})" pointer-events="none">${symbol(c, k, o)}</g>`;
+    // current flow
+    if (o && !r.short && c.type !== 'volt' && Math.abs(o.iab) > 1e-4) {
+      const ai = Math.abs(o.iab), dur = Math.max(0.25, 1.6 / Math.sqrt(Math.min(ai, 20) + 0.05));
+      flows += `<line class="flow" x1="${px(c.a)}" y1="${py(c.a)}" x2="${px(c.b)}" y2="${py(c.b)}" style="animation-duration:${dur.toFixed(2)}s;animation-direction:${o.iab > 0 ? 'normal' : 'reverse'}"/>`;
+    }
+    // labels
+    let txt = '';
+    if (c.type === 'res') txt = `${c.label} · ${fmt(c.R, 'Ω')}`;
+    if (c.type === 'bulb') txt = `${c.label} · ${fmt(c.R, 'Ω')}`;
+    if (c.type === 'batt') txt = `${c.label} · ${fmt(c.E, 'V')}${c.r > 0 ? ' · r ' + fmt(c.r, 'Ω') : ''}`;
+    if (c.type === 'sw') txt = `${c.label} · ${c.closed ? 'chiuso' : 'aperto'}`;
+    const lx = hor ? mx : mx - 21, ly = hor ? my - 21 : my + 4, anc = hor ? 'middle' : 'end';
+    if (txt) labels += `<text x="${lx}" y="${ly}" text-anchor="${anc}" font-size="11.5" font-weight="600" fill="var(--ink)" paint-order="stroke" stroke="var(--panel)" stroke-width="3">${txt}</text>`;
+    if (c.type === 'amm' || c.type === 'volt') {
+      let val = '—';
+      if (o && !r.short) val = c.type === 'amm' ? fmt((c.flip ? -1 : 1) * o.iab, 'A') : fmt((c.flip ? -1 : 1) * o.vab, 'V');
+      else if (r && r.short) val = 'ERR';
+      const bw = 74, bh = 20, bx = hor ? mx - bw / 2 : mx + 20, by = hor ? (my - 40 < 2 ? my + 20 : my - 20 - bh) : my - bh / 2;
+      labels += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" fill="var(--lcd)" stroke="var(--line)"/><text x="${bx + 6}" y="${by + 14}" font-size="10.5" font-weight="700" fill="var(--muted)">${c.label}</text><text x="${bx + bw - 6}" y="${by + 14.5}" text-anchor="end" font-size="12" font-family="ui-monospace,Menlo,monospace" font-weight="700" fill="var(--lcd-ink)">${val}</text>`;
+      const letter = c.type === 'amm' ? 'A' : 'V';
+      labels += `<text x="${mx}" y="${my + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="${c.type === 'amm' ? 'var(--warn)' : 'var(--ok)'}" pointer-events="none">${letter}</text>`;
+    }
+  }
+  s += flows + syms;
+  // node dots for connected nodes + node hit
+  for (const [id] of deg) {
+    const on = sel && sel.kind === 'node' && sel.id === id;
+    s += `<circle cx="${px(id)}" cy="${py(id)}" r="${on ? 6 : 3.6}" fill="${on ? 'var(--accent)' : 'var(--ink)'}" pointer-events="none"/>`;
+  }
+  for (let id = 0; id < COLS * ROWS; id++) if (deg.has(id)) s += `<circle class="nodehit" data-node="${id}" cx="${px(id)}" cy="${py(id)}" r="10"/>`;
+  s += `<g pointer-events="none">${labels}</g>`;
+  board.innerHTML = s;
+}
+
+/* ---------------- palette ---------------- */
+const ICON = {
+  select: '<path d="M5 3 L5 17 L9 13 L12 19 L14 18 L11 12 L16 12 Z" fill="currentColor"/>',
+  wire: '<line x1="2" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="2.2"/>',
+  res: '<line x1="1" y1="11" x2="5" y2="11" stroke="currentColor" stroke-width="2"/><rect x="5" y="7" width="12" height="8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="17" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="2"/>',
+  bulb: '<circle cx="11" cy="11" r="7" fill="var(--bulb)" stroke="currentColor" stroke-width="1.8"/><path d="M6 6 L16 16 M16 6 L6 16" stroke="currentColor" stroke-width="1.5"/>',
+  batt: '<line x1="1" y1="11" x2="8" y2="11" stroke="currentColor" stroke-width="2"/><line x1="8" y1="3" x2="8" y2="19" stroke="currentColor" stroke-width="2"/><line x1="13" y1="7" x2="13" y2="15" stroke="currentColor" stroke-width="3.5"/><line x1="13" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="2"/>',
+  sw: '<circle cx="5" cy="13" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="13" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="6.5" y1="12" x2="16" y2="5" stroke="currentColor" stroke-width="2"/>',
+  amm: '<circle cx="11" cy="11" r="8" fill="none" stroke="var(--warn)" stroke-width="2"/><text x="11" y="15.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--warn)">A</text>',
+  volt: '<circle cx="11" cy="11" r="8" fill="none" stroke="var(--ok)" stroke-width="2"/><text x="11" y="15.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ok)">V</text>',
+  erase: '<path d="M4 15 L11 4 L19 9 L13 19 L7 19 Z" fill="none" stroke="var(--bad)" stroke-width="1.8"/><line x1="7" y1="10" x2="15" y2="15" stroke="var(--bad)" stroke-width="1.8"/>',
+};
+const TOOLS = [
+  ['select', 'Seleziona', '选择'], 'sep',
+  ['wire', 'Filo', '导线'], ['res', 'Resistenza', '电阻'], ['bulb', 'Lampadina', '灯泡'], ['batt', 'Generatore', '电源'], ['sw', 'Interruttore', '开关'],
+  'lbl:Strumenti 电表', ['amm', 'Amperometro', '电流表'], ['volt', 'Voltmetro', '电压表'], 'sep',
+  ['erase', 'Gomma', '删除'],
+];
+function buildPalette() {
+  const p = $('#palette');
+  p.innerHTML = TOOLS.map(t => {
+    if (t === 'sep') return '<div class="sep"></div>';
+    if (typeof t === 'string') return `<label>${t.slice(4)}</label>`;
+    return `<button data-tool="${t[0]}" title="${t[1]} · ${t[2]}"><svg width="22" height="22" viewBox="0 0 22 22">${ICON[t[0]]}</svg><span>${t[1]}</span></button>`;
+  }).join('');
+  p.addEventListener('click', e => {
+    const b = e.target.closest('button[data-tool]'); if (!b) return;
+    tool = b.dataset.tool; updatePalette();
+  });
+  updatePalette();
+}
+function updatePalette() {
+  $$('#palette button').forEach(b => b.classList.toggle('on', b.dataset.tool === tool));
+  const H = {
+    select: 'Clicca un componente per modificarlo, o un nodo (pallino nero) per vedere la legge dei nodi. 点击元件修改参数，点击节点看基尔霍夫电流定律。',
+    erase: 'Clicca un componente per eliminarlo. 点击删除元件。',
+  };
+  $('#hint').textContent = H[tool] || `Clicca su un lato della griglia (tra due punti) per posare: ${TYPES[tool].name} · ${TYPES[tool].zh}. Tasto Canc = elimina, F = inverti polarità.`;
+}
+
+/* ---------------- board events ---------------- */
+board.addEventListener('click', e => {
+  const t = e.target;
+  if (t.dataset.node !== undefined) {
+    if (tool === 'select' || tool === 'erase') { sel = { kind: 'node', id: +t.dataset.node }; buildInspector(); update(); }
+    return;
+  }
+  const k = t.dataset.key; if (!k) return;
+  const [a, b] = k.split('-').map(Number);
+  if (tool === 'select') {
+    sel = comps.has(k) ? { kind: 'comp', key: k } : null;
+  } else if (tool === 'erase') {
+    comps.delete(k); if (sel && sel.key === k) sel = null;
+  } else {
+    const ex = comps.get(k);
+    if (!(ex && ex.type === tool)) place(tool, a, b);
+    sel = tool === 'wire' ? null : { kind: 'comp', key: k };
+  }
+  buildInspector(); update();
+});
+board.addEventListener('dblclick', e => {
+  const k = e.target.dataset.key; const c = k && comps.get(k);
+  if (c && c.type === 'sw') { c.closed = !c.closed; buildInspector(); update(); }
+});
+document.addEventListener('keydown', e => {
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (!sel || sel.kind !== 'comp') return;
+  const c = comps.get(sel.key); if (!c) return;
+  if (e.key === 'Delete' || e.key === 'Backspace') { comps.delete(sel.key); sel = null; buildInspector(); update(); e.preventDefault(); }
+  if (e.key === 'f' || e.key === 'F') { c.flip = !c.flip; update(); }
+});
+
+/* ---------------- inspector ---------------- */
+function field(id, label, unit, val, min, max, step) {
+  return `<div class="field"><div class="lbl"><span>${label}</span><span>${unit}</span></div>
+    <div class="pair"><input type="range" id="r_${id}" min="${min}" max="${max}" step="${step}" value="${val}"><input type="number" id="n_${id}" min="0" step="${step}" value="${val}"></div></div>`;
+}
+function bindField(id, c, prop, min = 0) {
+  const r = $('#r_' + id), n = $('#n_' + id);
+  r.addEventListener('input', () => { c[prop] = +r.value; n.value = r.value; if (c.type === 'bulb') c.burnt = false; update(); });
+  n.addEventListener('input', () => { const v = num(n.value); if (isFinite(v) && v >= min) { c[prop] = v; r.value = v; if (c.type === 'bulb') c.burnt = false; update(); } });
+}
+function buildInspector() {
+  const el = $('#inspector');
+  if (sel && sel.kind === 'node') {
+    el.innerHTML = `<h2>Nodo · legge dei nodi 节点</h2><div id="ro"></div>`;
+    return;
+  }
+  const c = sel && comps.get(sel.key);
+  if (!c) {
+    el.innerHTML = `<h2>Ispettore 属性面板</h2><div class="small muted">Seleziona un componente (strumento <b>Seleziona</b>) per cambiarne i valori e leggere ΔV, i e P.<br>选中元件可修改数值，并查看电压、电流、功率。<br><br>Suggerimento: inizia da <b>“Esempio note”</b> — è l'esercizio 12 V con R₁ + (R₂∥R₃) delle tue note.</div>`;
+    return;
+  }
+  const T = TYPES[c.type];
+  let h = `<h2>${T.name} ${c.label ? '<span class="muted">' + c.label + '</span>' : ''} <span class="muted small">· ${T.zh}</span></h2>`;
+  if (c.type === 'res') h += field('R', 'Resistenza R', 'Ω', c.R, 0.5, 100, 0.5);
+  if (c.type === 'bulb') h += field('R', 'Resistenza R', 'Ω', c.R, 0.5, 100, 0.5) + field('P', 'Potenza nominale (luce 100 %)', 'W', c.Pnom, 1, 100, 1);
+  if (c.type === 'batt') h += field('E', 'Forza elettromotrice (f.e.m.)', 'V', c.E, 0, 24, 0.5) + field('r', 'Resistenza interna r', 'Ω', c.r, 0, 5, 0.1);
+  h += '<div class="row" style="margin:6px 0 4px">';
+  if (c.type === 'sw') h += `<button class="btn primary" id="tgl">${c.closed ? 'Apri ⏻' : 'Chiudi ⏻'}</button>`;
+  if (c.type === 'bulb' && c.burnt) h += `<button class="btn primary" id="repl">💡 Sostituisci lampadina</button>`;
+  if (['batt', 'amm', 'volt'].includes(c.type)) h += `<button class="btn" id="flp">⇄ Inverti polarità (F)</button>`;
+  h += `<button class="btn danger" id="del">Elimina</button></div><div id="ro"></div>`;
+  el.innerHTML = h;
+  if (c.type === 'res') bindField('R', c, 'R', 1e-3);
+  if (c.type === 'bulb') { bindField('R', c, 'R', 1e-3); bindField('P', c, 'Pnom', 0.1); }
+  if (c.type === 'batt') { bindField('E', c, 'E'); bindField('r', c, 'r'); }
+  const on = (id, f) => { const b = $('#' + id); if (b) b.onclick = f; };
+  on('tgl', () => { c.closed = !c.closed; buildInspector(); update(); });
+  on('repl', () => { c.burnt = false; buildInspector(); update(); });
+  on('flp', () => { c.flip = !c.flip; update(); });
+  on('del', () => { comps.delete(sel.key); sel = null; buildInspector(); update(); });
+}
+function readouts() {
+  const ro = $('#ro'); if (!ro) return;
+  const r = result;
+  if (sel && sel.kind === 'node') {
+    if (!r || r.short) { ro.innerHTML = '<div class="small muted">Nessun valore (circuito in corto).</div>'; return; }
+    let rows = '', sin = 0, sout = 0;
+    for (const [k, c] of comps) {
+      if (c.a !== sel.id && c.b !== sel.id) continue;
+      const o = r.c.get(k); if (!o) continue;
+      const leave = c.a === sel.id ? o.iab : -o.iab;
+      if (Math.abs(leave) < 1e-6) continue;
+      const name = c.label || TYPES[c.type].name.toLowerCase();
+      if (leave < 0) sin += -leave; else sout += leave;
+      rows += `<span>${leave < 0 ? '→ entra da' : '← esce verso'} ${name}</span><b>${fmt(Math.abs(leave), 'A')}</b>`;
+    }
+    const V = r.V.get(sel.id);
+    ro.innerHTML = `<div class="kv"><span>Potenziale V (rispetto al − del generatore)</span><b>${fmt(V, 'V')}</b>${rows || '<span class="muted">Nessuna corrente</span><span></span>'}</div>
+      <div class="check">Σ i<sub>entranti</sub> = ${fmt(sin, 'A')} &nbsp; Σ i<sub>uscenti</sub> = ${fmt(sout, 'A')} ${Math.abs(sin - sout) < 1e-3 * Math.max(1, sin) ? '<b style="color:var(--ok)">✓ legge dei nodi</b>' : ''}</div>`;
+    return;
+  }
+  const c = sel && comps.get(sel.key); if (!c) return;
+  const o = r && r.c.get(sel.key);
+  if (!o || r.short) { ro.innerHTML = `<div class="small muted">${r && r.short ? 'Circuito in corto: nessuna misura affidabile.' : ''}</div>`; return; }
+  const ai = Math.abs(o.iab), av = Math.abs(o.vab);
+  let h = '<div class="kv">';
+  if (c.type === 'batt') {
+    h += `<span>f.e.m. 电动势</span><b>${fmt(c.E, 'V')}</b><span>ΔV ai morsetti 端电压</span><b>${fmt(o.vterm, 'V')}</b><span>Corrente erogata</span><b>${fmt(o.idel, 'A')}</b><span>Potenza erogata E·i</span><b>${fmt(o.Pgen, 'W')}</b>`;
+    if (c.r > 0) h += `<span>Persa in r (r·i²)</span><b>${fmt(o.Pr, 'W')}</b>`;
+    h += '</div>';
+    if (c.r > 0) h += `<div class="check">ΔV = E − r·i → ${fnum(c.E)} − ${fnum(c.r)}·${fnum(o.idel)} = ${fmt(c.E - c.r * o.idel, 'V')}</div>`;
+    if (Math.abs(o.idel) > 1e-6) h += `<div class="check">R<sub>eq</sub> esterna = ΔV / i = ${fnum(o.vterm)} / ${fnum(o.idel)} = <b>${fmt(o.vterm / o.idel, 'Ω')}</b></div>`;
+  } else if (c.type === 'volt') {
+    h += `<span>Lettura</span><b>${fmt((c.flip ? -1 : 1) * o.vab, 'V')}</b><span>Corrente assorbita</span><b>${fmt(ai, 'A')}</b></div><div class="check small">Il voltmetro va in <b>parallelo</b>; ha R enorme (10 MΩ) quindi non disturba. 电压表并联，内阻很大。</div>`;
+  } else if (c.type === 'amm') {
+    h += `<span>Lettura</span><b>${fmt((c.flip ? -1 : 1) * o.iab, 'A')}</b></div><div class="check small">L'amperometro va in <b>serie</b>; ha R ≈ 0. Se lo metti in parallelo a un generatore → corto circuito! 电流表串联，内阻≈0。</div>`;
+  } else if (c.type === 'wire' || c.type === 'sw') {
+    h += `<span>Corrente i</span><b>${c.type === 'sw' && !c.closed ? '0 A (aperto)' : fmt(ai, 'A')}</b><span>ΔV ai capi</span><b>≈ 0 V</b></div><div class="check small">Filo ideale: R ≈ 0, quindi nessuna caduta di potenziale. 理想导线电阻≈0。${c.type === 'sw' ? ' Doppio clic sull\'interruttore per aprirlo/chiuderlo.' : ''}</div>`;
+  } else {
+    h += `<span>ΔV ai capi</span><b>${fmt(av, 'V')}</b><span>Corrente i</span><b>${fmt(ai, 'A')}</b><span>Potenza P</span><b>${fmt(Math.abs(o.P), 'W')}</b>`;
+    if (c.type === 'bulb') h += `<span>Luminosità</span><b>${c.burnt ? 'bruciata 🔥' : Math.round(100 * Math.abs(o.P) / c.Pnom) + ' %'}</b>`;
+    h += '</div>';
+    if (c.type === 'res' || (c.type === 'bulb' && !c.burnt)) {
+      h += `<div class="check">Prima legge: ΔV = R·i → ${fmt(c.R, 'Ω')} × ${fmt(ai, 'A')} = <b>${fmt(c.R * ai, 'V')}</b> ✓<br>Joule: P = R·i² = ${fmt(c.R * ai * ai, 'W')} = ΔV²/R = ${fmt(av * av / c.R, 'W')}</div>`;
+    }
+    if (c.type === 'bulb') h += `<div class="small muted" style="margin-top:6px">Si brucia se P &gt; 2 × P nominale. 功率超过额定2倍会烧坏。</div>`;
+  }
+  ro.innerHTML = h;
+}
+
+/* ---------------- summary & challenges ---------------- */
+function summary() {
+  const r = result, el = $('#summary');
+  const banner = $('#banner');
+  banner.classList.toggle('on', !!(r && r.short));
+  if (r && r.short) banner.textContent = r.singular
+    ? '⚠ Circuito impossibile: generatori ideali collegati direttamente fra loro. 理想电源直接相连。'
+    : `⚠ Corto circuito! Corrente > ${SHORT_I} A: un filo o un amperometro collega direttamente i poli. 短路！`;
+  if (!r || r.empty) { el.innerHTML = '<span class="muted">Circuito vuoto</span><span></span>'; return; }
+  let h = '', Ptot = 0;
+  const batts = [...comps.entries()].filter(([, c]) => c.type === 'batt');
+  for (const [k, c] of comps) { const o = r.c.get(k); if (o && (c.type === 'res' || c.type === 'bulb')) Ptot += Math.abs(o.P); }
+  h += `<span>Generatori</span><b>${batts.length}</b>`;
+  if (!r.short) {
+    batts.forEach(([k, c]) => { const o = r.c.get(k); h += `<span>${c.label}: i erogata</span><b>${fmt(o.idel, 'A')}</b>`; if (batts.length === 1 && Math.abs(o.idel) > 1e-6) h += `<span>R<sub>eq</sub> vista da ${c.label}</span><b>${fmt(o.vterm / o.idel, 'Ω')}</b>`; });
+    h += `<span>P dissipata (R + lampadine)</span><b>${fmt(Ptot, 'W')}</b>`;
+    const lit = [...comps.values()].filter(c => c.type === 'bulb');
+    if (lit.length) h += `<span>Lampadine accese / bruciate</span><b>${lit.filter(c => !c.burnt && r.c.get(ekey(c.a, c.b)).P > 0.02 * c.Pnom).length} / ${lit.filter(c => c.burnt).length}</b>`;
+  }
+  el.innerHTML = h;
+}
+const CHALLENGES = [
+  ['Accendi una lampadina al 100 % (P ≥ P nominale) senza bruciarla.', r => [...comps].some(([k, c]) => c.type === 'bulb' && !c.burnt && r.c.get(k).P >= c.Pnom * 0.98)],
+  ['Misura con un amperometro una corrente di esattamente 1 A (±1 %).', r => [...comps].some(([k, c]) => c.type === 'amm' && Math.abs(Math.abs(r.c.get(k).iab) - 1) < 0.01)],
+  ['Con sole resistenze da 4 Ω (almeno 2) ottieni R_eq = 2 Ω vista dal generatore.', r => {
+    const rs = [...comps.values()].filter(c => c.type === 'res'); const b = [...comps].filter(([, c]) => c.type === 'batt');
+    if (rs.length < 2 || b.length !== 1 || rs.some(c => Math.abs(c.R - 4) > 1e-9) || [...comps.values()].some(c => c.type === 'bulb')) return false;
+    const o = r.c.get(b[0][0]); return Math.abs(o.idel) > 1e-3 && Math.abs(o.vterm / o.idel - 2) < 0.02;
+  }],
+  ['Fai brillare due lampadine uguali: una al 100 % e l\'altra al 25 %.', r => {
+    const L = [...comps].filter(([, c]) => c.type === 'bulb' && !c.burnt).map(([k, c]) => r.c.get(k).P / c.Pnom);
+    return L.some(x => Math.abs(x - 1) < 0.03) && L.some(x => Math.abs(x - 0.25) < 0.02);
+  }],
+  ['Verifica la legge delle maglie: due voltmetri su R₁ e sul parallelo che sommati diano la f.e.m.', r => {
+    const b = [...comps].filter(([, c]) => c.type === 'batt'); if (b.length !== 1) return false;
+    const E = b[0][1].E; const vs = [...comps].filter(([, c]) => c.type === 'volt').map(([k]) => Math.abs(r.c.get(k).vab)).filter(v => v > 0.05 && v < E - 0.05);
+    for (let i = 0; i < vs.length; i++) for (let j = i + 1; j < vs.length; j++) if (Math.abs(vs[i] + vs[j] - E) < 0.01 * E) return true; return false;
+  }],
+];
+const doneCh = new Set();
+function challenges() {
+  const r = result;
+  if (r && !r.short && !r.empty) CHALLENGES.forEach((ch, i) => { try { if (ch[1](r)) doneCh.add(i); } catch (e) {} });
+  $('#challenges').innerHTML = CHALLENGES.map((ch, i) => `<div class="ch ${doneCh.has(i) ? 'done' : ''}"><span class="dot">${doneCh.has(i) ? '✓' : ''}</span><span>${ch[0]}</span></div>`).join('') +
+    `<div class="small muted" style="margin-top:6px">${doneCh.size} / ${CHALLENGES.length} completate</div>`;
+}
+
+function update() {
+  result = solve();
+  render(); readouts(); summary(); challenges();
+}
+
+/* ---------------- presets ---------------- */
+function wireLine(c1, r1, c2, r2) {
+  if (r1 === r2) for (let c = Math.min(c1, c2); c < Math.max(c1, c2); c++) place('wire', nid(c, r1), nid(c + 1, r1));
+  else for (let r = Math.min(r1, r2); r < Math.max(r1, r2); r++) place('wire', nid(c1, r), nid(c1, r + 1));
+}
+const put = (type, c, r, dir, props) => place(type, nid(c, r), dir === 'h' ? nid(c + 1, r) : nid(c, r + 1), props);
+const PRESETS = {
+  clear() {},
+  note() {
+    wireLine(1, 1, 8, 1); wireLine(1, 5, 8, 5); wireLine(1, 1, 1, 5);
+    wireLine(6, 1, 6, 5); wireLine(8, 1, 8, 5);
+    put('batt', 1, 3, 'v', { E: 12 });
+    put('amm', 2, 1, 'h'); put('res', 4, 1, 'h', { R: 2 });
+    put('amm', 6, 2, 'v'); put('res', 6, 3, 'v', { R: 3 });
+    put('amm', 8, 2, 'v'); put('res', 8, 3, 'v', { R: 6 });
+    wireLine(4, 0, 4, 1); wireLine(5, 0, 5, 1); put('volt', 4, 0, 'h');
+    wireLine(8, 3, 9, 3); wireLine(8, 4, 9, 4); put('volt', 9, 3, 'v');
+  },
+  ohm() {
+    wireLine(2, 1, 7, 1); wireLine(2, 5, 7, 5); wireLine(2, 1, 2, 5); wireLine(7, 1, 7, 5);
+    put('batt', 2, 3, 'v', { E: 12 }); put('amm', 4, 1, 'h'); put('res', 7, 3, 'v', { R: 5 });
+    wireLine(7, 3, 8, 3); wireLine(7, 4, 8, 4); put('volt', 8, 3, 'v');
+  },
+  serie() {
+    wireLine(2, 1, 8, 1); wireLine(2, 5, 8, 5); wireLine(2, 1, 2, 5); wireLine(8, 1, 8, 5);
+    put('batt', 2, 3, 'v', { E: 12 }); put('bulb', 4, 1, 'h'); put('bulb', 6, 1, 'h'); put('amm', 8, 3, 'v'); put('sw', 5, 5, 'h');
+  },
+  par() {
+    wireLine(1, 1, 7, 1); wireLine(1, 5, 7, 5); wireLine(1, 1, 1, 5); wireLine(4, 1, 4, 5); wireLine(7, 1, 7, 5);
+    put('batt', 1, 3, 'v', { E: 12 }); put('amm', 2, 1, 'h'); put('bulb', 4, 3, 'v'); put('bulb', 7, 3, 'v'); put('sw', 6, 1, 'h');
+  },
+};
+$$('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  comps = new Map(); sel = null; PRESETS[b.dataset.preset](); tool = 'select'; updatePalette(); buildInspector(); update();
+}));
+
+/* ---------------- data log ---------------- */
+function meterValues() {
+  const row = {};
+  if (!result || result.short) return null;
+  for (const [k, c] of comps) {
+    const o = result.c.get(k);
+    if (c.type === 'amm') row[c.label + ' (A)'] = (c.flip ? -1 : 1) * o.iab;
+    if (c.type === 'volt') row[c.label + ' (V)'] = (c.flip ? -1 : 1) * o.vab;
+  }
+  return Object.keys(row).length ? row : null;
+}
+function cols() { const s = new Set(); log.forEach(r => Object.keys(r).forEach(k => s.add(k))); return [...s].sort(); }
+function renderLog() {
+  const C = cols();
+  $('#logtable').innerHTML = log.length ? `<tr><th>#</th>${C.map(c => `<th>${c}</th>`).join('')}</tr>` +
+    log.map((r, i) => `<tr><td>${i + 1}</td>${C.map(c => `<td>${c in r ? fnum(r[c], 4) : ''}</td>`).join('')}</tr>`).join('')
+    : '<tr><td class="muted">Nessuna misura. Aggiungi voltmetri/amperometri e premi “Registra”.</td></tr>';
+  for (const [id, pref] of [['#xsel', '(A)'], ['#ysel', '(V)']]) {
+    const s = $(id), prev = s.value;
+    s.innerHTML = C.map(c => `<option>${c}</option>`).join('');
+    if (C.includes(prev)) s.value = prev; else { const d = C.find(c => c.endsWith(pref)); if (d) s.value = d; }
+  }
+  drawChart();
+}
+$('#rec').onclick = () => { const r = meterValues(); if (!r) { flashMsg('Serve almeno un voltmetro o un amperometro (e nessun corto).'); return; } log.push(r); renderLog(); };
+$('#clearlog').onclick = () => { log = []; renderLog(); };
+$('#sweep').onclick = () => {
+  let bk = sel && sel.kind === 'comp' && comps.get(sel.key) && comps.get(sel.key).type === 'batt' ? sel.key : [...comps].find(([, c]) => c.type === 'batt')?.[0];
+  if (!bk) { flashMsg('Aggiungi un generatore per lo sweep.'); return; }
+  const g = comps.get(bk), E0 = g.E || 12;
+  for (let s = 0; s <= 6; s++) { g.E = E0 * s / 6; result = solve(); const r = meterValues(); if (r) log.push(r); }
+  g.E = E0; update(); renderLog();
+};
+$('#csv').onclick = () => {
+  const C = cols(); if (!log.length) return;
+  const txt = ['#;' + C.join(';'), ...log.map((r, i) => (i + 1) + ';' + C.map(c => c in r ? String(r[c]).replace('.', ',') : '').join(';'))].join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv' })); a.download = 'misure-ohm.csv'; a.click();
+};
+function flashMsg(m) { const h = $('#hint'); const old = h.textContent; h.textContent = '⚠ ' + m; h.style.color = 'var(--warn)'; setTimeout(() => { h.style.color = ''; updatePalette(); }, 2500); }
+$('#xsel').onchange = drawChart; $('#ysel').onchange = drawChart;
+
+function nice(max) { if (max <= 0) return 1; const e = Math.pow(10, Math.floor(Math.log10(max))); const f = max / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * e; }
+function drawChart() {
+  const cv = $('#chart'), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight; if (!w) return;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const X = $('#xsel').value, Y = $('#ysel').value;
+  const pts = log.filter(r => X in r && Y in r).map(r => [r[X], r[Y]]);
+  const ink = css('--ink'), muted = css('--muted'), line = css('--line'), acc = css('--accent');
+  if (!pts.length) { g.fillStyle = muted; g.textAlign = 'center'; g.font = '13px system-ui'; g.fillText('Registra misure (o usa lo sweep) per vedere il grafico', w / 2, h / 2); $('#fit').innerHTML = ''; return; }
+  const L = 52, R = 14, T = 14, B = 36;
+  const xmax = nice(Math.max(1e-9, ...pts.map(p => Math.abs(p[0])))), ymax = nice(Math.max(1e-9, ...pts.map(p => Math.abs(p[1]))));
+  const xmin = Math.min(0, ...pts.map(p => p[0])) < 0 ? -xmax : 0, ymin = Math.min(0, ...pts.map(p => p[1])) < 0 ? -ymax : 0;
+  const sx = v => L + (v - xmin) / (xmax - xmin) * (w - L - R), sy = v => h - B - (v - ymin) / (ymax - ymin) * (h - T - B);
+  g.font = '11px system-ui'; g.fillStyle = muted; g.strokeStyle = line; g.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const xv = xmin + (xmax - xmin) * i / 5, yv = ymin + (ymax - ymin) * i / 5;
+    g.beginPath(); g.moveTo(sx(xv), T); g.lineTo(sx(xv), h - B); g.stroke();
+    g.beginPath(); g.moveTo(L, sy(yv)); g.lineTo(w - R, sy(yv)); g.stroke();
+    g.textAlign = 'center'; g.fillText(fnum(xv, 3), sx(xv), h - B + 14);
+    g.textAlign = 'right'; g.fillText(fnum(yv, 3), L - 6, sy(yv) + 4);
+  }
+  g.fillStyle = ink; g.textAlign = 'center'; g.fillText(X || 'x', (L + w - R) / 2, h - 6);
+  g.save(); g.translate(12, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText(Y || 'y', 0, 0); g.restore();
+  if (!pts.length) { g.fillStyle = muted; g.textAlign = 'center'; g.fillText('Registra misure (o usa lo sweep) per vedere il grafico', w / 2, h / 2); $('#fit').innerHTML = ''; return; }
+  // fit through origin
+  const sxy = pts.reduce((s, p) => s + p[0] * p[1], 0), sxx = pts.reduce((s, p) => s + p[0] * p[0], 0);
+  if (sxx > 0 && pts.length >= 2) {
+    const m = sxy / sxx;
+    g.strokeStyle = acc; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath();
+    const x0 = xmin, x1 = xmax; g.moveTo(sx(x0), sy(m * x0)); g.lineTo(sx(x1), sy(m * x1)); g.stroke(); g.setLineDash([]);
+    const isVI = X.endsWith('(A)') && Y.endsWith('(V)');
+    $('#fit').innerHTML = `Retta per l'origine: pendenza = <b>${fnum(m, 4)}</b> ${isVI ? 'V/A = <b>Ω</b> → è la resistenza R (prima legge di Ohm!) 斜率就是电阻' : ''}`;
+  } else $('#fit').innerHTML = 'Servono almeno 2 punti per la retta.';
+  g.fillStyle = acc; pts.forEach(p => { g.beginPath(); g.arc(sx(p[0]), sy(p[1]), 4.5, 0, 7); g.fill(); });
+}
+window.addEventListener('resize', drawChart);
+
+/* ---------------- tabs ---------------- */
+$$('nav.tabs button').forEach(b => b.addEventListener('click', () => {
+  $$('nav.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $$('section.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + b.dataset.tab));
+  if (b.dataset.tab === 'lab') drawChart();
+  try { localStorage.setItem('ohmlab-tab', b.dataset.tab); } catch (e) {}
+}));
+
+/* ---------------- formula calculators ---------------- */
+$('#ocalc').onclick = () => {
+  let V = num($('#oV').value), R = num($('#oR').value), i = num($('#oI').value), P = num($('#oP').value);
+  const k = [V, R, i, P].filter(isFinite).length;
+  if (k < 2) { $('#ores').innerHTML = '<span class="muted">Servono almeno due valori.</span>'; return; }
+  let how = '';
+  if (isFinite(V) && isFinite(R)) { i = V / R; P = V * i; how = 'i = ΔV/R, P = ΔV·i'; }
+  else if (isFinite(V) && isFinite(i)) { R = V / i; P = V * i; how = 'R = ΔV/i, P = ΔV·i'; }
+  else if (isFinite(R) && isFinite(i)) { V = R * i; P = R * i * i; how = 'ΔV = R·i, P = R·i²'; }
+  else if (isFinite(P) && isFinite(R)) { i = Math.sqrt(P / R); V = R * i; how = 'i = √(P/R), ΔV = R·i'; }
+  else if (isFinite(P) && isFinite(V)) { i = P / V; R = V / i; how = 'i = P/ΔV, R = ΔV/i'; }
+  else if (isFinite(P) && isFinite(i)) { V = P / i; R = V / i; how = 'ΔV = P/i, R = ΔV/i'; }
+  $('#ores').innerHTML = `ΔV = <b>${fmt(V, 'V')}</b> · R = <b>${fmt(R, 'Ω')}</b> · i = <b>${fmt(i, 'A')}</b> · P = <b>${fmt(P, 'W')}</b><div class="small muted">${how}</div>`;
+};
+$('#oclr').onclick = () => { ['#oV', '#oR', '#oI', '#oP'].forEach(s => $(s).value = ''); $('#ores').innerHTML = ''; };
+
+const MATS = [['Rame 铜', 1.7e-8, 3.9e-3], ['Argento 银', 1.6e-8, 3.8e-3], ['Alluminio 铝', 2.7e-8, 3.9e-3], ['Tungsteno 钨', 5.6e-8, 4.5e-3], ['Ferro 铁', 9.7e-8, 5.0e-3], ['Costantana', 4.9e-7, 1e-5], ['Nichel-cromo 镍铬', 1.1e-6, 4e-4]];
+$('#mat').innerHTML = MATS.map((m, i) => `<option value="${i}">${m[0]} — ρ = ${m[1].toExponential(1).replace('.', ',')} Ω·m</option>`).join('');
+let lastR2 = NaN;
+function calc2() {
+  const m = MATS[+$('#mat').value], L = num($('#sL').value), S = num($('#sS').value) * 1e-6, dT = num($('#sT').value) || 0;
+  if (!(L > 0 && S > 0)) { $('#sres').innerHTML = '<span class="muted">Inserisci L e S positivi.</span>'; lastR2 = NaN; return; }
+  const rho = m[1] * (1 + m[2] * dT); lastR2 = rho * L / S;
+  $('#sres').innerHTML = `ρ = ${rho.toExponential(3).replace('.', ',')} Ω·m &nbsp; S = ${S.toExponential(2).replace('.', ',')} m²<br>R = ρ·L/S = <b>${fmt(lastR2, 'Ω', 4)}</b>`;
+}
+['#mat', '#sL', '#sS', '#sT'].forEach(s => $(s).addEventListener('input', calc2)); calc2();
+$('#sapply').onclick = () => {
+  const c = sel && sel.kind === 'comp' && comps.get(sel.key);
+  if (!c || !(c.type === 'res' || c.type === 'bulb')) { $('#sapplyinfo').textContent = 'Prima seleziona una resistenza o una lampadina nel laboratorio.'; return; }
+  if (!isFinite(lastR2)) return;
+  c.R = Number(lastR2.toPrecision(4)); buildInspector(); update();
+  $('#sapplyinfo').textContent = `${c.label}: R = ${fmt(c.R, 'Ω', 4)} applicata ✓`;
+};
+
+/* ---------------- quiz ---------------- */
+const rnd = (a, b, s = 1) => Math.round((a + Math.random() * (b - a)) / s) * s;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const QT = {
+  ohm: ['Prima legge', () => { const R = pick([2, 4, 5, 8, 10, 12, 20, 25]), V = pick([3, 6, 9, 12, 24]); return { q: `Una resistenza R = ${R} Ω è collegata a un generatore con ΔV = ${V} V. Quanto vale la corrente i?`, a: V / R, u: 'A', sol: `i = ΔV / R = ${V} / ${R} = ${fnum(V / R, 4)} A` }; }],
+  ohmV: ['ΔV = R i', () => { const R = pick([5, 10, 15, 20, 40]), i = pick([0.2, 0.25, 0.5, 1.5, 2]); return { q: `Una corrente di ${fnum(i)} A attraversa una resistenza di ${R} Ω. Qual è la d.d.p. ai suoi capi?`, a: R * i, u: 'V', sol: `ΔV = R·i = ${R}·${fnum(i)} = ${fnum(R * i)} V` }; }],
+  carica: ['i = Δq/Δt', () => { const i = pick([0.5, 1, 2, 0.2]), t = pick([10, 30, 60, 120]); return { q: `Una corrente di ${fnum(i)} A scorre per ${t} s. Quanta carica Δq passa?`, a: i * t, u: 'C', sol: `Δq = i·Δt = ${fnum(i)}·${t} = ${fnum(i * t)} C` }; }],
+  serie: ['Serie', () => { const R1 = rnd(2, 12), R2 = rnd(2, 12), V = pick([6, 12, 18, 24]); return { q: `R₁ = ${R1} Ω e R₂ = ${R2} Ω sono in serie con un generatore da ${V} V. Calcola la corrente.`, a: V / (R1 + R2), u: 'A', sol: `R_eq = ${R1} + ${R2} = ${R1 + R2} Ω → i = ${V}/${R1 + R2} = ${fnum(V / (R1 + R2), 4)} A` }; }],
+  par: ['Parallelo', () => { const [R1, R2] = pick([[3, 6], [4, 4], [2, 3], [6, 12], [10, 15], [4, 12], [20, 30]]); const Rq = R1 * R2 / (R1 + R2); return { q: `Calcola la resistenza equivalente di R₁ = ${R1} Ω e R₂ = ${R2} Ω in parallelo.`, a: Rq, u: 'Ω', sol: `1/R_eq = 1/${R1} + 1/${R2} → R_eq = ${R1}·${R2}/(${R1}+${R2}) = ${fnum(Rq, 4)} Ω (minore di ${Math.min(R1, R2)} Ω ✓)` }; }],
+  misto: ['Misto (come nelle note)', () => { const [R2, R3] = pick([[3, 6], [6, 12], [4, 4], [10, 15]]), R1 = pick([1, 2, 3, 4, 6]), V = pick([12, 18, 24]); const Rp = R2 * R3 / (R2 + R3), Rq = R1 + Rp; return { q: `R₁ = ${R1} Ω è in serie con il parallelo di R₂ = ${R2} Ω e R₃ = ${R3} Ω. Generatore ΔV = ${V} V. Calcola la corrente totale.`, a: V / Rq, u: 'A', sol: `R_p = ${fnum(Rp, 4)} Ω → R_eq = ${fnum(Rq, 4)} Ω → i = ${V}/${fnum(Rq, 4)} = ${fnum(V / Rq, 4)} A. (Prova a costruirlo nel lab!)` }; }],
+  pot: ['Potenza', () => { const t = pick([0, 1, 2]); const R = pick([2, 4, 6, 10, 20]), i = pick([0.5, 1, 2, 3]), V = pick([6, 12, 230]);
+    if (t === 0) return { q: `Una resistenza di ${R} Ω è attraversata da ${fnum(i)} A. Che potenza dissipa?`, a: R * i * i, u: 'W', sol: `P = R·i² = ${R}·${fnum(i)}² = ${fnum(R * i * i)} W` };
+    if (t === 1) return { q: `Una resistenza di ${R} Ω è sottoposta a ΔV = ${V} V. Che potenza dissipa?`, a: V * V / R, u: 'W', sol: `P = ΔV²/R = ${V}²/${R} = ${fnum(V * V / R, 4)} W` };
+    return { q: `Un apparecchio assorbe ${fnum(i)} A a ${V} V. Qual è la sua potenza?`, a: V * i, u: 'W', sol: `P = ΔV·i = ${V}·${fnum(i)} = ${fnum(V * i)} W` }; }],
+  energia: ['Energia (kWh)', () => { const P = pick([500, 1000, 1500, 2000, 2400]), m = pick([15, 30, 45, 90, 120]); return { q: `Un apparecchio da ${P} W resta acceso ${m} minuti. Quanta energia consuma in kWh?`, a: P / 1000 * m / 60, u: 'kWh', sol: `E = P·Δt = ${P / 1000} kW · ${fnum(m / 60, 4)} h = ${fnum(P / 1000 * m / 60, 4)} kWh (= ${fnum(P * m * 60, 3)} J)` }; }],
+  seconda: ['Seconda legge', () => { const m = pick(MATS.slice(0, 5)), L = pick([2, 5, 10, 20, 50]), S = pick([0.5, 1, 1.5, 2.5]); const R = m[1] * L / (S * 1e-6); return { q: `Un filo di ${m[0].split(' ')[0].toLowerCase()} (ρ = ${m[1].toExponential(1).replace('.', ',')} Ω·m) è lungo ${L} m e ha sezione ${fnum(S)} mm². Calcola R.`, a: R, u: 'Ω', sol: `S = ${fnum(S)}·10⁻⁶ m² → R = ρL/S = ${m[1].toExponential(1).replace('.', ',')}·${L} / ${fnum(S)}·10⁻⁶ = ${fnum(R, 4)} Ω` }; }],
+};
+const qOn = new Set(Object.keys(QT));
+$('#qtypes').innerHTML = Object.entries(QT).map(([k, v]) => `<label><input type="checkbox" data-qt="${k}" checked> ${v[0]}</label>`).join('');
+$$('#qtypes input').forEach(i => i.onchange = () => { i.checked ? qOn.add(i.dataset.qt) : qOn.delete(i.dataset.qt); if (!qOn.size) { qOn.add(i.dataset.qt); i.checked = true; } });
+let curQ = null, good = 0, tot = 0, answered = false;
+function newQ() { curQ = QT[pick([...qOn])][1](); answered = false; $('#qtext').textContent = curQ.q; $('#qunit').textContent = curQ.u; $('#qans').value = ''; $('#qfb').className = 'fb'; }
+$('#qnext').onclick = newQ;
+$('#qcheck').onclick = () => {
+  const v = num($('#qans').value), fb = $('#qfb'); if (!isFinite(v)) return;
+  const ok = Math.abs(v - curQ.a) <= 0.02 * Math.abs(curQ.a) + 1e-9;
+  if (!answered) { tot++; if (ok) good++; answered = true; }
+  $('#qscore').textContent = `${good} / ${tot}`;
+  fb.className = 'fb on ' + (ok ? 'good' : 'badf');
+  fb.innerHTML = ok ? `✅ Corretto! ${curQ.sol}` : `❌ Non proprio. Riprova o guarda la soluzione. 再试试。`;
+};
+$('#qans').addEventListener('keydown', e => { if (e.key === 'Enter') $('#qcheck').click(); });
+$('#qsol').onclick = () => { const fb = $('#qfb'); fb.className = 'fb on good'; fb.innerHTML = '💡 ' + curQ.sol; if (!answered) { tot++; answered = true; $('#qscore').textContent = `${good} / ${tot}`; } };
+newQ();
+
+const FLASH = [
+  ['Enuncia la prima legge di Ohm. Quando vale?', 'ΔV = R·i：d.d.p. 与电流成正比，比例常数是 R。只对 conduttori ohmici 成立（灯泡、二极管不适用）。'],
+  ['Se raddoppio la lunghezza di un filo e dimezzo la sezione, come cambia R?', 'R = ρL/S：L ×2，S ÷2 → R 变为原来的 4 倍。'],
+  ['Perché in parallelo la resistenza equivalente è minore di ciascuna resistenza?', '并联相当于增大导体截面 S，给电流多开了通路；1/R_eq > 1/R_k 对每个 k 成立。'],
+  ['0,5 A attraversano 20 Ω. Qual è la d.d.p.? Quanta carica passa in 1 minuto?', 'ΔV = 20·0,5 = 10 V；Δq = i·Δt = 0,5·60 = 30 C。'],
+  ['La corrente va da A a B attraverso R. Quale punto ha il potenziale più alto?', 'A。沿电流方向电势下降：V_A − V_B = R·i > 0。（在实验室点击节点看电势！）'],
+  ['Enuncia le due leggi di Kirchhoff.', 'Nodi: Σ correnti entranti = Σ correnti uscenti。Maglie: la somma algebrica delle d.d.p. lungo una maglia è nulla。'],
+  ['Perché per i condensatori serie e parallelo sono "scambiati"?', '电阻 ΔV = R·i（正比），电容 ΔV = q/C（反比）。Serie: q 相同 → 1/C_eq = Σ1/C；Parallelo: ΔV 相同 → C_eq = ΣC。'],
+  ['Ricava P = R·i² da P = ΔV·i.', '代入 ΔV = R·i：P = (R·i)·i = R·i²。'],
+  ['Due resistenze 2 Ω e 4 Ω in serie: quale scalda di più? E in parallelo?', 'Serie：i 相同，P = R·i² → 4 Ω 发热多。Parallelo：ΔV 相同，P = ΔV²/R → 2 Ω 发热多。'],
+  ['Un phon da 2000 W resta acceso 15 minuti. Energia in J e kWh?', 'E = 2000·900 = 1,8×10⁶ J = 2 kW·0,25 h = 0,5 kWh。'],
+  ['Perché gli impianti domestici sono in parallelo?', '每个电器都拿到完整的 230 V；一个关掉/坏掉不影响其他电器。（对比实验室里的“Lampadine in serie / parallelo”！）'],
+];
+$('#flash').innerHTML = FLASH.map(f => `<details class="flash"><summary>${f[0]}</summary><p>${f[1]}</p></details>`).join('');
+
+/* ---------------- init ---------------- */
+buildPalette();
+PRESETS.note(); tool = 'select'; updatePalette();
+buildInspector(); update(); renderLog();
+try { const t = localStorage.getItem('ohmlab-tab'); if (t && t !== 'lab') document.querySelector(`nav.tabs button[data-tab="${t}"]`)?.click(); } catch (e) {}
+})();
+</script>
+</body>
+</html>
