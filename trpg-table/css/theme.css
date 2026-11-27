@@ -1,0 +1,143 @@
+/* =========================================================
+   theme.css —— 只放"外观变量"，不放布局。
+   想换配色：复制一整块 [data-theme="..."]，改个名字和颜色，
+   再到 js/main.js 的 THEMES 列表里加一行，就能在顶栏切换。
+   ========================================================= */
+
+:root {
+  /* 字体 */
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --font-display: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 尺寸 */
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 16px;
+  --gap: 12px;
+  --pad: 14px;
+
+  /* 动效 */
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --speed: 180ms;
+}
+
+/* ---------- 主题一：星夜（深色） ---------- */
+[data-theme="starlight"] {
+  color-scheme: dark;
+  --bg: #0b0e1a;
+  --bg-deco: radial-gradient(1200px 600px at 80% -10%, #2a2160 0%, transparent 60%),
+             radial-gradient(900px 500px at -10% 110%, #123a5a 0%, transparent 55%);
+  --panel: rgba(20, 24, 44, .78);
+  --panel-head: rgba(255, 255, 255, .03);
+  --panel-border: rgba(160, 170, 255, .16);
+  --surface: rgba(255, 255, 255, .05);
+  --surface-hover: rgba(255, 255, 255, .09);
+
+  --text: #e8eaf6;
+  --text-dim: #9aa0c3;
+  --text-faint: #6b7096;
+
+  --accent: #f2c46d;          /* 主强调色：金色 */
+  --accent-text: #1b1405;
+  --accent-soft: rgba(242, 196, 109, .16);
+  --link: #9ab8ff;
+
+  --good: #6fd6a8;
+  --bad: #ff7a8a;
+  --warn: #ffb86b;
+
+  --ally: #6fb7ff;
+  --enemy: #ff7a8a;
+  --player: #f2c46d;
+
+  --board-bg: #0f1428;
+  --board-line: rgba(150, 160, 255, .10);
+
+  --msg-dm: rgba(140, 120, 255, .12);
+  --msg-player: rgba(242, 196, 109, .12);
+  --msg-system: transparent;
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  --glow: 0 0 0 3px rgba(242, 196, 109, .35);
+}
+
+/* ---------- 主题二：羊皮纸（浅色） ---------- */
+[data-theme="parchment"] {
+  color-scheme: light;
+  --bg: #efe6d2;
+  --bg-deco: radial-gradient(1000px 600px at 100% 0%, #f7f0de 0%, transparent 60%);
+  --panel: rgba(255, 251, 240, .92);
+  --panel-head: rgba(120, 80, 30, .05);
+  --panel-border: rgba(120, 80, 30, .22);
+  --surface: rgba(120, 80, 30, .06);
+  --surface-hover: rgba(120, 80, 30, .12);
+
+  --text: #2e2418;
+  --text-dim: #6b5a44;
+  --text-faint: #9a8a72;
+
+  --accent: #9b3d24;
+  --accent-text: #fff8ef;
+  --accent-soft: rgba(155, 61, 36, .12);
+  --link: #2f5d8a;
+
+  --good: #2f7d4f;
+  --bad: #b23a3a;
+  --warn: #b0701c;
+
+  --ally: #2f6fa8;
+  --enemy: #b23a3a;
+  --player: #9b3d24;
+
+  --board-bg: #f6eedb;
+  --board-line: rgba(120, 80, 30, .14);
+
+  --msg-dm: rgba(47, 93, 138, .08);
+  --msg-player: rgba(155, 61, 36, .08);
+  --msg-system: transparent;
+
+  --shadow: 0 6px 18px rgba(80, 50, 10, .12);
+  --glow: 0 0 0 3px rgba(155, 61, 36, .3);
+}
+
+/* ---------- 主题三：霓虹（高对比） ---------- */
+[data-theme="neon"] {
+  color-scheme: dark;
+  --bg: #07070b;
+  --bg-deco: linear-gradient(transparent 95%, rgba(0, 255, 200, .05) 95%) 0 0 / 100% 24px;
+  --panel: rgba(14, 14, 22, .9);
+  --panel-head: rgba(0, 255, 200, .04);
+  --panel-border: rgba(0, 255, 200, .28);
+  --surface: rgba(255, 255, 255, .04);
+  --surface-hover: rgba(0, 255, 200, .08);
+
+  --text: #e6fffa;
+  --text-dim: #8ab8b0;
+  --text-faint: #5a7d78;
+
+  --accent: #ff2e88;
+  --accent-text: #ffffff;
+  --accent-soft: rgba(255, 46, 136, .16);
+  --link: #00ffc8;
+
+  --good: #00ffc8;
+  --bad: #ff2e5a;
+  --warn: #ffd400;
+
+  --ally: #00c8ff;
+  --enemy: #ff2e5a;
+  --player: #ff2e88;
+
+  --board-bg: #0b0b14;
+  --board-line: rgba(0, 255, 200, .10);
+
+  --msg-dm: rgba(0, 255, 200, .07);
+  --msg-player: rgba(255, 46, 136, .10);
+  --msg-system: transparent;
+
+  --shadow: 0 0 24px rgba(0, 255, 200, .08);
+  --glow: 0 0 0 3px rgba(255, 46, 136, .45);
+  --radius-m: 4px;
+  --radius-l: 6px;
+}

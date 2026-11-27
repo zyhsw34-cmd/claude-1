@@ -1,0 +1,69 @@
+/* =========================================================
+   layout.css —— 只管"区块放在哪"。
+   想挪动区块位置，改下面 grid-template-areas 里的词就行：
+   每个词代表一个区块，同一行引号里的词排成一行，
+   同一个词连续出现就表示这个区块横跨几格。
+   ========================================================= */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+
+body {
+  background: var(--bg-deco), var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font: 14px/1.6 var(--font-body);
+}
+
+.app {
+  display: grid;
+  gap: var(--gap);
+  padding: var(--gap);
+  height: 100vh;
+  height: 100dvh;
+
+  /* 宽屏：角色卡 | 桌面（下方是 战斗 + 骰子）| DM */
+  grid-template-columns: 270px minmax(0, 1fr) 290px minmax(320px, 400px);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 350px);
+  grid-template-areas:
+    "header header header header"
+    "sheet  board  board  dm"
+    "sheet  combat dice   dm";
+}
+
+.area-header { grid-area: header; }
+.area-sheet  { grid-area: sheet; }
+.area-board  { grid-area: board; }
+.area-combat { grid-area: combat; }
+.area-dice   { grid-area: dice; }
+.area-dm     { grid-area: dm; }
+
+/* ---------- 中等屏幕（平板横屏）：角色卡挪到底部 ---------- */
+@media (max-width: 1180px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr) 270px minmax(300px, 360px);
+    grid-template-rows: auto 460px 360px auto;
+    grid-template-areas:
+      "header header header"
+      "board  board  dm"
+      "combat dice   dm"
+      "sheet  sheet  sheet";
+  }
+}
+
+/* ---------- 窄屏（手机、平板竖屏）：全部竖着排 ---------- */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 70dvh 420px 360px auto auto;
+    grid-template-areas:
+      "header"
+      "dm"
+      "board"
+      "combat"
+      "dice"
+      "sheet";
+  }
+}

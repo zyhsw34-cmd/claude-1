@@ -1,0 +1,284 @@
+/* =========================================================
+   components.css —— 每个"零件"长什么样。
+   这里只用 theme.css 里的变量，不直接写颜色，
+   这样换主题时零件会自动跟着变。
+   ========================================================= */
+
+/* ---------- 通用：面板 ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px var(--pad);
+  background: var(--panel-head);
+  border-bottom: 1px solid var(--panel-border);
+}
+.panel-head h2 {
+  margin: 0;
+  font: 600 15px/1.2 var(--font-display);
+  letter-spacing: .12em;
+}
+.panel-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.panel-body { flex: 1; min-height: 0; overflow: auto; padding: var(--pad); }
+.panel-foot { padding: 6px var(--pad); border-top: 1px solid var(--panel-border); }
+.hint { color: var(--text-faint); font-size: 12px; }
+
+/* ---------- 通用：按钮和输入框 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 7px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--speed) var(--ease), transform var(--speed) var(--ease);
+  user-select: none;
+}
+.btn:hover { background: var(--surface-hover); }
+.btn:active { transform: scale(.96); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none; box-shadow: var(--glow);
+}
+.btn-ghost { background: transparent; }
+.btn-accent { background: var(--accent); color: var(--accent-text); border-color: transparent; font-weight: 600; }
+.btn-accent:hover { background: var(--accent); filter: brightness(1.08); }
+.btn-danger { color: var(--bad); border-color: currentColor; background: transparent; }
+.btn-small { padding: 4px 10px; font-size: 13px; }
+
+input, select, textarea {
+  font: inherit; color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-s);
+  padding: 6px 8px;
+  min-width: 0;
+}
+select option { background: var(--bg); color: var(--text); }
+textarea { resize: none; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.field small { color: var(--text-faint); }
+.field-inline { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); }
+.field-inline.small { font-size: 13px; }
+.field-inline input[type="number"] { width: 56px; }
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 4px 6px;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand-mark { color: var(--accent); font-size: 20px; }
+.brand-name { font: 700 20px/1 var(--font-display); letter-spacing: .2em; }
+.brand-sub { color: var(--text-dim); font-size: 13px; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- 角色卡 ---------- */
+.sheet-name { width: 100%; font: 600 18px/1.3 var(--font-display); margin-bottom: 8px; }
+.sheet-row { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.sheet-row > span { color: var(--text-dim); font-size: 13px; }
+.sheet-section { margin: 16px 0 8px; font-size: 12px; letter-spacing: .15em; color: var(--text-faint); }
+.attr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.attr {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px;
+  background: var(--surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-m);
+  cursor: pointer;
+  transition: background var(--speed) var(--ease);
+}
+.attr:hover { background: var(--surface-hover); }
+.attr-label { font-size: 12px; color: var(--text-dim); }
+.attr-value { width: 56px; text-align: center; font: 700 20px/1.2 var(--font-mono); background: transparent; border: none; }
+.attr-hint { font-size: 11px; color: var(--text-faint); }
+.meter { display: flex; align-items: center; gap: 8px; }
+.meter input { width: 56px; text-align: center; }
+.bar { position: relative; flex: 1; height: 8px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.bar > i { position: absolute; inset: 0 auto 0 0; background: var(--good); border-radius: inherit; transition: width var(--speed) var(--ease); }
+.bar.low > i { background: var(--bad); }
+#sheet textarea { width: 100%; }
+.pips { display: flex; gap: 6px; }
+.pip {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--accent); background: transparent; cursor: pointer; padding: 0;
+}
+.pip.on { background: var(--accent); box-shadow: 0 0 10px var(--accent-soft); }
+
+/* ---------- 桌面（地图） ---------- */
+.board-wrap { display: grid; place-items: center; padding: 10px; background: var(--board-bg); }
+.board {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  aspect-ratio: var(--cols) / var(--rows);
+  background-image:
+    linear-gradient(var(--board-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--board-line) 1px, transparent 1px);
+  background-size: calc(100% / var(--cols)) calc(100% / var(--rows));
+  border: 1px solid var(--board-line);
+  border-radius: var(--radius-m);
+  touch-action: none;
+}
+/* 地图按比例缩放，放得下多大就多大 */
+.board-wrap { container-type: size; }
+.board { width: min(100cqw, 100cqh * var(--cols) / var(--rows)); }
+.zone {
+  position: absolute;
+  border: 1px dashed var(--panel-border);
+  border-radius: var(--radius-m);
+  color: var(--text-faint);
+  font-size: 11px;
+  padding: 2px 6px;
+  pointer-events: none;
+  background: var(--surface);
+}
+.token {
+  position: absolute;
+  width: calc(100% / var(--cols));
+  height: calc(100% / var(--rows));
+  display: grid; place-items: center;
+  cursor: grab;
+  transition: left var(--speed) var(--ease), top var(--speed) var(--ease);
+  touch-action: none;
+}
+.token.dragging { transition: none; cursor: grabbing; z-index: 5; }
+.token-disc {
+  width: 78%; aspect-ratio: 1;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  background: color-mix(in srgb, var(--c) 22%, var(--board-bg));
+  color: var(--text);
+  font: 700 clamp(11px, 1.4vw, 16px)/1 var(--font-body);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+}
+.token[data-kind="player"] { --c: var(--player); }
+.token[data-kind="ally"]   { --c: var(--ally); }
+.token[data-kind="enemy"]  { --c: var(--enemy); }
+.token.selected .token-disc { box-shadow: var(--glow); }
+.token.active .token-disc { outline: 2px dashed var(--c); outline-offset: 3px; }
+.token-name {
+  position: absolute; bottom: -2px; left: 50%; transform: translate(-50%, 100%);
+  white-space: nowrap; font-size: 11px; color: var(--text-dim); pointer-events: none;
+}
+
+/* ---------- 战斗区 ---------- */
+.area-combat { container-type: inline-size; }
+.combat-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; }
+/* 战斗区本身变窄时，先攻列表和记录改成上下排 */
+@container (max-width: 520px) { .combat-body { grid-template-columns: 1fr; } }
+.turn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.turn {
+  display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  border-left: 3px solid var(--c, var(--panel-border));
+}
+.turn[data-kind="player"] { --c: var(--player); }
+.turn[data-kind="ally"]   { --c: var(--ally); }
+.turn[data-kind="enemy"]  { --c: var(--enemy); }
+.turn.active { background: var(--accent-soft); }
+.turn.down { opacity: .45; text-decoration: line-through; }
+.turn-init { font: 700 15px/1 var(--font-mono); color: var(--text-dim); text-align: center; }
+.turn-name { font-weight: 600; }
+.turn .bar { margin-top: 3px; height: 5px; }
+.hp-ctrl { display: flex; gap: 2px; align-items: center; font: 12px var(--font-mono); }
+.hp-ctrl button { width: 22px; height: 22px; padding: 0; border-radius: var(--radius-s); }
+.round-badge { font-size: 12px; color: var(--text-dim); padding: 2px 8px; border: 1px solid var(--panel-border); border-radius: 99px; }
+.empty { color: var(--text-faint); font-size: 13px; padding: 8px 0; }
+
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.log li { padding: 4px 8px; border-radius: var(--radius-s); background: var(--surface); color: var(--text-dim); }
+.log li b { color: var(--text); }
+.log li.good { color: var(--good); }
+.log li.bad { color: var(--bad); }
+
+/* ---------- 骰子区 ---------- */
+.dice-body { display: flex; flex-direction: column; gap: 8px; }
+.dice-result { display: flex; align-items: center; gap: 12px; }
+.die-face {
+  flex: none; width: 56px; height: 56px; display: grid; place-items: center;
+  font: 800 24px/1 var(--font-mono);
+  color: var(--accent-text); background: var(--accent);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.die-face.rolling { animation: roll 450ms var(--ease); }
+.die-face.crit { background: var(--good); }
+.die-face.fumble { background: var(--bad); }
+@keyframes roll {
+  0% { transform: rotate(0) scale(.6); }
+  60% { transform: rotate(320deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.dice-detail { font-size: 13px; color: var(--text-dim); }
+.dice-detail b { color: var(--text); font-size: 15px; }
+.dice-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.dice-buttons .btn { padding: 6px 0; font-family: var(--font-mono); }
+.dice-expr { display: flex; gap: 6px; align-items: center; }
+.dice-expr input { flex: 1; }
+/* 检定：两行，上面选属性和优劣势，下面填难度和按钮 */
+.check-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: center; }
+.check-form .field-inline input { flex: 1; width: auto; }
+
+/* ---------- DM 区（聊天） ---------- */
+.status-dot { font-size: 12px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
+.status-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.status-dot.live::before { background: var(--good); }
+.status-dot.busy::before { background: var(--link); animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+.chat { display: flex; flex-direction: column; gap: 10px; }
+.msg { padding: 10px 12px; border-radius: var(--radius-m); white-space: pre-wrap; word-break: break-word; }
+.msg-who { display: block; font-size: 11px; letter-spacing: .1em; color: var(--text-faint); margin-bottom: 2px; }
+.msg.dm { background: var(--msg-dm); border-left: 3px solid var(--link); font-family: var(--font-display); }
+.msg.player { background: var(--msg-player); align-self: flex-end; max-width: 88%; }
+.msg.system { background: var(--msg-system); color: var(--text-faint); font-size: 12px; text-align: center; padding: 2px; }
+.msg.error { color: var(--bad); font-size: 13px; }
+.roll-request:disabled { background: var(--surface); color: var(--text-faint); }
+.roll-request {
+  display: inline-flex; margin: 4px 4px 0 0;
+  font-family: var(--font-body);
+}
+.chat-input { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--panel-border); }
+.chat-input textarea { flex: 1; }
+
+/* ---------- 设置弹窗 ---------- */
+.dialog {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-l);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0;
+  width: min(460px, calc(100vw - 32px));
+  box-shadow: var(--shadow);
+}
+.dialog::backdrop { background: rgba(0, 0, 0, .5); backdrop-filter: blur(2px); }
+.dialog-body { padding: 20px; }
+.dialog-body h2 { margin: 0 0 16px; font-family: var(--font-display); }
+.dialog-body input, .dialog-body select { width: 100%; }
+.dialog-body .field-inline input { width: auto; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.dialog hr { border: none; border-top: 1px solid var(--panel-border); margin: 16px 0; }
+
+/* ---------- 小屏微调 ---------- */
+@media (max-width: 760px) {
+  .brand-sub { display: none; }
+  .topbar-actions .field-inline span { display: none; }
+}
