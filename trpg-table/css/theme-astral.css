@@ -1,0 +1,329 @@
+/* =========================================================
+   theme-astral.css —— 「星轨」主题
+   气质：构成主义几何 + 细线 + 浩瀚星河。
+   所有图形都是原创，用 CSS 和 css/astral/ 里的两张 SVG 画出来。
+
+   这个文件分两部分：
+   ① 变量（和 theme.css 里其它主题一样，只管颜色、圆角等）
+   ② 装饰（只在 data-theme="astral" 时生效，给面板加角标、细线、编号）
+   想去掉某个装饰，把对应那一段删掉就行，不会影响功能。
+   ========================================================= */
+
+/* ---------- ① 变量 ---------- */
+[data-theme="astral"] {
+  color-scheme: dark;
+
+  /* 字体：参考研究结论，整套界面用干净的黑体，层级只靠字号和颜色；
+     数字用电脑自带的"工业风"窄体（Mac 的 DIN Alternate、Windows 的 Bahnschrift），
+     都是系统自带字体，不额外下载任何字体文件。 */
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --font-display: var(--font-body);
+  --font-mono: "DIN Alternate", "Bahnschrift", "Roboto Condensed", "Arial Narrow", ui-monospace, sans-serif;
+
+  /* 底色：很深的蓝黑；--bg-deco 是两团星云光晕 */
+  --bg: #05071a;
+  --bg-deco:
+    radial-gradient(70% 55% at 78% 22%, rgba(88, 72, 180, .30) 0%, transparent 70%),
+    radial-gradient(55% 45% at 12% 88%, rgba(30, 90, 140, .28) 0%, transparent 70%),
+    radial-gradient(40% 30% at 45% 55%, rgba(200, 150, 90, .07) 0%, transparent 70%);
+
+  /* 面板：半透明，能隐约看到背后的星空 */
+  --panel: rgba(9, 12, 32, .6);
+  --panel-head: linear-gradient(90deg, rgba(233, 201, 131, .07), transparent 60%);
+  --panel-border: rgba(190, 205, 255, .16);
+  --surface: rgba(190, 205, 255, .045);
+  --surface-hover: rgba(233, 201, 131, .10);
+
+  --text: #eef0fa;
+  --text-dim: #a3abcf;
+  --text-faint: #6c7399;
+
+  /* 主色：淡金；第二色：冷白蓝 */
+  --accent: #e9c983;
+  --accent-text: #15100a;
+  --accent-soft: rgba(233, 201, 131, .14);
+  --link: #a9c8ff;
+  --line-gold: rgba(233, 201, 131, .55);
+  --line-cold: rgba(190, 205, 255, .30);
+
+  --good: #7fe0c0;
+  --bad: #ff7f7f;
+  --warn: #f0b46a;
+
+  --ally: #8fc2ff;
+  --enemy: #ff7f7f;
+  --player: #e9c983;
+
+  --board-bg: rgba(4, 6, 20, .55);
+  --board-line: rgba(190, 205, 255, .08);
+
+  --msg-dm: linear-gradient(90deg, rgba(169, 200, 255, .09), rgba(169, 200, 255, .02));
+  --msg-player: rgba(233, 201, 131, .09);
+  --msg-system: transparent;
+
+  --shadow: 0 18px 40px rgba(0, 0, 0, .45);
+  --glow: 0 0 0 1px var(--accent), 0 0 14px rgba(233, 201, 131, .35);
+
+  /* 构成主义偏"硬朗"：圆角几乎为零 */
+  --radius-s: 1px;
+  --radius-m: 2px;
+  --radius-l: 2px;
+}
+
+/* ---------- ② 装饰 ---------- */
+
+/* 背景三层：星云（body 本身）→ 星空 → 几何线。
+   ::before 和 ::after 是"伪元素"，相当于免费多出两张图层。 */
+[data-theme="astral"] body::before,
+[data-theme="astral"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+/* 星空 + 一条斜跨的银河光带 */
+[data-theme="astral"] body::before {
+  background-image:
+    url("astral/stars.svg"),
+    linear-gradient(-24deg, transparent 38%, rgba(150, 140, 255, .07) 46%, rgba(255, 220, 180, .09) 50%,
+                    rgba(150, 140, 255, .07) 54%, transparent 62%);
+  animation: astral-twinkle 9s ease-in-out infinite alternate;
+}
+/* 天体仪、星轨、斜线 */
+[data-theme="astral"] body::after {
+  background-image: url("astral/geometry.svg");
+  animation: astral-drift 120s linear infinite alternate;
+}
+@keyframes astral-twinkle { from { opacity: .85; } to { opacity: 1; } }
+@keyframes astral-drift { from { transform: scale(1.02) translate(0, 0); } to { transform: scale(1.06) translate(-1.2%, .8%); } }
+/* 系统设置了"减少动态效果"的话，背景就不动 */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="astral"] body::before,
+  [data-theme="astral"] body::after { animation: none; }
+}
+
+/* 顶栏：底部一条细金线，带刻度 */
+[data-theme="astral"] .topbar {
+  position: relative;
+  padding: 6px 10px 12px;
+}
+[data-theme="astral"] .topbar::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background:
+    linear-gradient(var(--line-gold), var(--line-gold)) 0 100% / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, var(--line-cold) 0 1px, transparent 1px 24px) 0 100% / 100% 5px no-repeat;
+  -webkit-mask: linear-gradient(90deg, #000 0 40%, transparent);
+          mask: linear-gradient(90deg, #000 0 40%, transparent);
+}
+
+/* 标志：四芒星外面套一个旋转的细圆环和一条斜线 */
+[data-theme="astral"] .brand { align-items: center; }
+[data-theme="astral"] .brand-mark {
+  position: relative;
+  display: grid; place-items: center;
+  width: 34px; height: 34px;
+  font-size: 16px;
+  text-shadow: 0 0 10px rgba(233, 201, 131, .7);
+}
+[data-theme="astral"] .brand-mark::before,
+[data-theme="astral"] .brand-mark::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+}
+[data-theme="astral"] .brand-mark::before {
+  border: 1px solid var(--line-gold);
+  border-top-color: transparent;
+  animation: astral-spin 14s linear infinite;
+}
+[data-theme="astral"] .brand-mark::after {
+  inset: -5px;
+  border: 1px dashed var(--line-cold);
+  background: linear-gradient(-45deg, transparent calc(50% - .5px), var(--line-gold) 50%, transparent calc(50% + .5px));
+}
+@keyframes astral-spin { to { transform: rotate(360deg); } }
+[data-theme="astral"] .brand-name { letter-spacing: .32em; font-weight: 600; }
+[data-theme="astral"] .brand-sub {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .18em;
+  padding-left: 10px; border-left: 1px solid var(--line-cold);
+}
+
+/* 面板：四个角各一道 L 形金色角标，像仪器的取景框 */
+[data-theme="astral"] .panel {
+  position: relative;
+  overflow: visible;
+  backdrop-filter: blur(6px) saturate(1.2);
+  counter-increment: astral-panel;
+}
+[data-theme="astral"] .panel::before {
+  content: "";
+  position: absolute; inset: -1px; z-index: 2;
+  pointer-events: none;
+  --l: 12px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / var(--l) 1px,
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 1px var(--l),
+    linear-gradient(var(--accent), var(--accent)) 100% 0 / var(--l) 1px,
+    linear-gradient(var(--accent), var(--accent)) 100% 0 / 1px var(--l),
+    linear-gradient(var(--accent), var(--accent)) 0 100% / var(--l) 1px,
+    linear-gradient(var(--accent), var(--accent)) 0 100% / 1px var(--l),
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / var(--l) 1px,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / 1px var(--l);
+  background-repeat: no-repeat;
+  opacity: .75;
+}
+/* 面板内部要自己裁掉滚动内容（因为外框为了露出角标改成了 visible） */
+[data-theme="astral"] .panel > .panel-body { overflow: auto; }
+[data-theme="astral"] .app { counter-reset: astral-panel; }
+
+/* 面板标题：前面加编号「01」，后面拉一条细线 */
+[data-theme="astral"] .panel-head { position: relative; border-bottom-color: transparent; }
+[data-theme="astral"] .panel-head::after {
+  content: "";
+  position: absolute; left: var(--pad); right: var(--pad); bottom: 0; height: 1px;
+  background: linear-gradient(90deg, var(--line-gold), var(--line-cold) 35%, transparent);
+}
+[data-theme="astral"] .panel-head h2 {
+  display: flex; align-items: baseline; gap: 10px;
+  font-weight: 600; letter-spacing: .28em;
+}
+[data-theme="astral"] .panel-head h2::before {
+  content: counter(astral-panel, decimal-leading-zero);
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: .1em;
+  color: var(--accent);
+  padding: 3px 5px;
+  border: 1px solid var(--line-gold);
+}
+
+/* 按钮：细边框；主按钮是切角的金色块 */
+[data-theme="astral"] .btn {
+  letter-spacing: .08em;
+  border-color: var(--line-cold);
+}
+[data-theme="astral"] .btn:hover { border-color: var(--line-gold); }
+[data-theme="astral"] .btn-accent {
+  border: none;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  background: linear-gradient(135deg, #f4dca3, var(--accent) 55%, #c9a35c);
+}
+[data-theme="astral"] .btn-accent:disabled { background: var(--surface); }
+
+/* 输入框：只留底线，像填表格 */
+[data-theme="astral"] input:not([type="checkbox"]),
+[data-theme="astral"] select,
+[data-theme="astral"] textarea {
+  background: rgba(190, 205, 255, .035);
+  border-color: transparent transparent var(--line-cold) transparent;
+}
+[data-theme="astral"] input:hover,
+[data-theme="astral"] select:hover,
+[data-theme="astral"] textarea:hover { border-bottom-color: var(--line-gold); }
+[data-theme="astral"] input[type="checkbox"] { accent-color: var(--accent); }
+
+/* 角色卡 */
+[data-theme="astral"] .sheet-name {
+  font-size: 20px; letter-spacing: .12em;
+  background: transparent;
+  border-bottom: 1px solid var(--line-gold);
+}
+[data-theme="astral"] .sheet-section {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--accent);
+  font-size: 11px; letter-spacing: .3em;
+}
+[data-theme="astral"] .sheet-section::before {
+  content: ""; width: 7px; height: 7px; flex: none;
+  border: 1px solid var(--accent); transform: rotate(45deg);
+}
+[data-theme="astral"] .sheet-section::after {
+  content: ""; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--line-cold), transparent);
+}
+[data-theme="astral"] .attr {
+  position: relative;
+  border-color: var(--line-cold);
+  background:
+    radial-gradient(circle at 50% 46%, transparent 26px, rgba(190, 205, 255, .14) 26.5px, transparent 27.5px),
+    var(--surface);
+}
+[data-theme="astral"] .attr:hover { border-color: var(--line-gold); }
+[data-theme="astral"] .attr-value { border-bottom: none; color: var(--accent); }
+[data-theme="astral"] .bar { height: 4px; border-radius: 0; background: rgba(190, 205, 255, .1); }
+[data-theme="astral"] .bar > i {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--good), #c8f5e6);
+  box-shadow: 0 0 8px rgba(127, 224, 192, .5);
+}
+[data-theme="astral"] .bar.low > i { background: var(--bad); box-shadow: 0 0 8px rgba(255, 127, 127, .5); }
+/* 幸运点改成菱形 */
+[data-theme="astral"] .pip {
+  width: 16px; height: 16px; margin: 3px;
+  border-radius: 0; transform: rotate(45deg);
+}
+
+/* 地图：底下多一层同心圆，像星图 */
+[data-theme="astral"] .board-wrap {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 79px, rgba(190, 205, 255, .06) 80px),
+    var(--board-bg);
+}
+[data-theme="astral"] .board { border-color: var(--line-cold); }
+[data-theme="astral"] .zone { border-color: rgba(233, 201, 131, .3); background: rgba(233, 201, 131, .03); letter-spacing: .1em; }
+[data-theme="astral"] .token-disc {
+  border-width: 1px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 30%, #05071a) 0 55%, #05071a 56%);
+  box-shadow: 0 0 0 3px #05071a, 0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent), 0 0 14px color-mix(in srgb, var(--c) 35%, transparent);
+  font-family: var(--font-display);
+}
+[data-theme="astral"] .token.selected .token-disc {
+  box-shadow: 0 0 0 3px #05071a, 0 0 0 4px var(--c), 0 0 22px var(--c);
+}
+[data-theme="astral"] .token-name { letter-spacing: .08em; text-shadow: 0 1px 3px #000; }
+
+/* 战斗区 */
+[data-theme="astral"] .turn { border-left-width: 2px; }
+[data-theme="astral"] .turn.active {
+  background: linear-gradient(90deg, var(--accent-soft), transparent);
+  box-shadow: inset 0 0 0 1px rgba(233, 201, 131, .25);
+}
+[data-theme="astral"] .round-badge { border-radius: 0; border-color: var(--line-gold); color: var(--accent); font-family: var(--font-mono); }
+[data-theme="astral"] .log li { background: transparent; border-left: 1px solid var(--line-cold); }
+
+/* 骰子：描边的六边形，中间有一圈细环 */
+[data-theme="astral"] .die-face {
+  width: 64px; height: 64px;
+  color: var(--accent);
+  background:
+    radial-gradient(circle, transparent 21px, var(--line-gold) 21.5px, transparent 22.5px),
+    linear-gradient(160deg, rgba(233, 201, 131, .18), rgba(9, 12, 32, .9));
+  filter: drop-shadow(0 0 1px var(--accent)) drop-shadow(0 0 8px rgba(233, 201, 131, .35));
+}
+[data-theme="astral"] .die-face.crit { color: #062a20; background: var(--good); }
+[data-theme="astral"] .die-face.fumble { color: #2a0606; background: var(--bad); }
+
+/* DM 对话：DM 的话左边一条渐变细线，玩家的话右对齐 */
+[data-theme="astral"] .msg { border-radius: 0; }
+[data-theme="astral"] .msg.dm {
+  border-left: 1px solid var(--link);
+  line-height: 1.85;
+  letter-spacing: .02em;
+}
+[data-theme="astral"] .msg.player { border-right: 1px solid var(--accent); }
+[data-theme="astral"] .msg-who { letter-spacing: .3em; font-family: var(--font-mono); }
+[data-theme="astral"] .msg.dm .msg-who { color: var(--link); }
+[data-theme="astral"] .msg.player .msg-who { color: var(--accent); text-align: right; }
+[data-theme="astral"] .status-dot::before { border-radius: 0; transform: rotate(45deg); width: 7px; height: 7px; }
+
+/* 设置弹窗 */
+[data-theme="astral"] .dialog {
+  background: rgba(7, 9, 26, .96);
+  border-color: var(--line-gold);
+}
+[data-theme="astral"] .dialog-body h2 { letter-spacing: .3em; }
+
+/* 滚动条也细一点 */
+[data-theme="astral"] * { scrollbar-width: thin; scrollbar-color: rgba(190, 205, 255, .2) transparent; }

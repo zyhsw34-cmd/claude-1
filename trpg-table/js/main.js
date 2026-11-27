@@ -6,7 +6,8 @@
   const THEMES = [
     { value: "starlight", label: "星夜" },
     { value: "parchment", label: "羊皮纸" },
-    { value: "neon", label: "霓虹" }
+    { value: "neon", label: "霓虹" },
+    { value: "astral", label: "星轨" }
   ];
 
   function applyTheme(v) {
