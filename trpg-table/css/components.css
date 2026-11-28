@@ -512,3 +512,4 @@ textarea { resize: none; }
 .sheet-lockbar.editing { color: var(--warn); }
 #sheet input[readonly] { cursor: default; }
 #sheet input[readonly]:focus { outline: none; }
+#ledger .ledger-head > span { visibility: hidden; } /* 主界面的区块已经有标题了 */
