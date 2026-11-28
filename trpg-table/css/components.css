@@ -300,19 +300,17 @@ textarea { resize: none; }
 [data-path-name="记忆"] { --path-c: #8fd6ff; }
 [data-path-name="欢愉"] { --path-c: #ff8fb0; }
 
-/* ---------- 地图区：大地图 / 战场 切换 ---------- */
-.seg { display: inline-flex; border: 1px solid var(--panel-border); border-radius: var(--radius-m); overflow: hidden; margin-left: auto; margin-right: 8px; }
-.seg-btn {
-  padding: 3px 12px; font: inherit; font-size: 12px; letter-spacing: .08em;
-  background: transparent; color: var(--text-dim); border: none; cursor: pointer;
-}
-.seg-btn + .seg-btn { border-left: 1px solid var(--panel-border); }
-.seg-btn.on { color: var(--accent); background: var(--accent-soft); }
-
-.board-wrap.is-world { padding: 0; position: relative; overflow: hidden; }
+/* ---------- 匹诺康尼大地图弹窗 ---------- */
+.world-dialog { width: min(1200px, calc(100vw - 24px)); height: calc(100dvh - 24px); max-height: none; padding: 0; }
+.world-dialog[open] { display: flex; flex-direction: column; }
+.world-dialog-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--panel-border); }
+.world-dialog-head h2 { margin: 0; font-size: 16px; letter-spacing: .12em; }
+.world-dialog-head .hint { flex: 1; font-size: 12px; }
+.world-dialog-body { position: relative; flex: 1; min-height: 0; background: var(--board-bg); }
 .world { position: absolute; inset: 0; touch-action: none; user-select: none; }
 .world-svg { width: 100%; height: 100%; display: block; cursor: grab; }
 .world-svg:active { cursor: grabbing; }
+@media (max-width: 760px) { .world-dialog-head .hint { display: none; } }
 
 /* 钟盘底图：全是细线 */
 .w-dial line, .w-dial circle, .w-dial path { fill: none; vector-effect: non-scaling-stroke; }
@@ -433,8 +431,6 @@ textarea { resize: none; }
 @media (prefers-reduced-motion: reduce) {
   .w-hand, .w-node, .w-label.small, .pick { transition: none; }
 }
-/* 手机上地图本来就是单独一行，不需要「展开 / 收起」 */
-@media (max-width: 760px) { #btn-map-big { display: none !important; } }
 
 /* ---------- DM 记忆 / DM 看到了什么 / 消息小按钮（director.js、memory.js） ---------- */
 .area-dm .panel-head .panel-tools { margin-left: auto; display: flex; gap: 4px; }
@@ -464,6 +460,161 @@ textarea { resize: none; }
 .peek-body summary { cursor: pointer; padding: 6px 10px; font-size: 13px; color: var(--text-dim); }
 .peek-body pre { margin: 0; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.6;
   max-height: 50vh; overflow: auto; border-top: 1px solid var(--panel-border); }
+
+/* =========================================================
+   当前场景（主界面中间）
+   ========================================================= */
+.scene-name { font-size: 13px; color: var(--accent); letter-spacing: .06em; margin-right: auto; margin-left: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.area-board .panel-head { gap: 8px; }
+.board-wrap { position: relative; }
+.board-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* 场景里的区域：细线框 + 左上角小标题 */
+.zone { border-style: solid; border-color: var(--board-line); background: transparent; letter-spacing: .1em; }
+.zone::before { content: ""; position: absolute; left: -1px; top: -1px; width: 10px; height: 10px;
+  border-left: 1px solid var(--accent); border-top: 1px solid var(--accent); opacity: .7; }
+.zone.exit { border-style: dashed; color: var(--link); }
+.scene-watermark { position: absolute; right: 10px; bottom: 6px; font-size: 22px; letter-spacing: .3em;
+  color: var(--text-faint); opacity: .12; pointer-events: none; white-space: nowrap; }
+@media (max-width: 760px) { .scene-watermark { display: none; } }
+
+/* NPC（中立）棋子 */
+.token[data-kind="npc"] { --c: var(--text-dim); }
+.turn[data-kind="npc"] { --c: var(--text-dim); }
+
+/* 行动顺序条：战斗时叠在场景左上角，横着排（星铁的行动条在左上角） */
+.board-wrap > .turn-list {
+  position: absolute; z-index: 6; left: 10px; top: 10px; right: 10px;
+  flex-direction: row; flex-wrap: wrap; gap: 6px; pointer-events: none;
+}
+.board-wrap > .turn-list .turn {
+  pointer-events: auto; grid-template-columns: 22px auto auto; gap: 6px; padding: 4px 8px;
+  background: var(--panel); backdrop-filter: blur(6px); border: 1px solid var(--panel-border); border-left: 3px solid var(--c);
+}
+.board-wrap > .turn-list .turn .bar { width: 64px; }
+.board-wrap > .turn-list .turn.active { border-color: var(--accent); box-shadow: var(--glow); }
+
+/* 判定区里的记录：只占下面一小块 */
+.dice-body .log { margin-top: auto; max-height: 96px; overflow: auto; font-size: 12px; }
+
+/* ---------- 线索与物品（ledger.js 没加载时的简易版） ---------- */
+.ledger-fallback h3 { margin: 0 0 6px; font-size: 12px; font-weight: 400; letter-spacing: .2em; color: var(--accent); }
+.ledger-fallback ul { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ledger-fallback li { font-size: 13px; padding: 4px 8px; border-left: 1px solid var(--line-cold, var(--panel-border)); color: var(--text-dim); }
+.ledger-fallback li.empty { border: none; color: var(--text-faint); padding-left: 0; }
+
+/* =========================================================
+   立体沙盘：当前场景斜放在桌上，区域有高度，角色是立牌
+   全部是 CSS 3D，没有图片和外部库。点「平面」回到俯视图。
+   ========================================================= */
+.cell { position: absolute; width: calc(100% / var(--cols)); height: calc(100% / var(--rows)); }
+.board { transition: transform .45s var(--ease); transform-origin: 50% 50%; }
+.zw, .token-shadow, .token-pole { display: none; }
+.board:not(.is-3d) .token-stand { display: contents; }
+.board:not(.is-3d) .token.down { opacity: .35; }
+
+.board-wrap.is-3d { perspective: 1500px; perspective-origin: 50% 20%; overflow: hidden; }
+.board-wrap.is-3d .board { width: min(80cqw, 100cqh * var(--cols) / var(--rows) * 1.25); }
+.board.is-3d {
+  --tilt: 56deg;
+  transform-style: preserve-3d;
+  transform: translateY(-2%) rotateX(var(--tilt)) rotateZ(var(--rot)) scale(var(--fit));
+  border-color: rgba(233, 201, 131, .45);
+  background-color: rgba(8, 10, 28, .7);
+  box-shadow: 0 0 0 6px rgba(5, 7, 26, .9), 0 0 0 7px rgba(233, 201, 131, .25), 0 40px 80px rgba(0, 0, 0, .6);
+}
+.board.is-3d .scene-watermark { display: none; }
+
+/* 区域：贴地的是一块细线框，有高度（h3）的是一个矮台子 */
+.board.is-3d .zone { transform-style: preserve-3d; transform: translateZ(var(--h)); padding: 0; }
+.board.is-3d .zone.raised { background: rgba(14, 16, 40, .92); border-color: rgba(233, 201, 131, .55); }
+.board.is-3d .zw {
+  display: block; position: absolute;
+  background: linear-gradient(rgba(233, 201, 131, .22), rgba(5, 7, 26, .95));
+  border: 1px solid rgba(233, 201, 131, .3);
+}
+.board.is-3d .zw-s { left: 0; top: 100%; width: 100%; height: var(--h); transform-origin: top;    transform: rotateX(-90deg); }
+.board.is-3d .zw-n { left: 0; bottom: 100%; width: 100%; height: var(--h); transform-origin: bottom; transform: rotateX(90deg); }
+.board.is-3d .zw-e { top: 0; left: 100%; height: 100%; width: var(--h); transform-origin: left;   transform: rotateY(90deg); }
+.board.is-3d .zw-w { top: 0; right: 100%; height: 100%; width: var(--h); transform-origin: right;  transform: rotateY(-90deg); }
+/* 区域名字像一块立着的小牌子，永远朝着你 */
+.board.is-3d .zone-label {
+  position: absolute; left: 4px; top: 4px; padding: 1px 6px;
+  transform-origin: 0 100%;
+  transform: rotateZ(calc(-1 * var(--rot))) rotateX(calc(-1 * var(--tilt)));
+  background: rgba(5, 7, 26, .8); border-left: 1px solid var(--accent);
+  white-space: nowrap; font-size: 12px; color: var(--text-dim);
+}
+.board.is-3d .zone.exit .zone-label { border-left-color: var(--link); color: var(--link); }
+
+/* 棋子：脚下一圈影子，上面一块立牌 */
+.board.is-3d .token { transform-style: preserve-3d; transform: translateZ(var(--z)); transition: left .2s var(--ease), top .2s var(--ease), transform .2s var(--ease); }
+.board.is-3d .token-shadow {
+  display: block; position: absolute; left: 18%; top: 18%; width: 64%; height: 64%; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--c) 70%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%);
+}
+.board.is-3d .token.active .token-shadow { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(233, 201, 131, .25), 0 0 18px var(--accent); }
+.board.is-3d .token.selected .token-shadow { border-color: var(--c); box-shadow: 0 0 16px var(--c); }
+.board.is-3d .token-stand {
+  position: absolute; left: 6%; width: 88%; bottom: 50%; height: 175%;
+  display: flex; flex-direction: column; align-items: center;
+  transform-origin: 50% 100%;
+  transform: rotateZ(calc(-1 * var(--rot))) rotateX(calc(-1 * var(--tilt)));
+  pointer-events: auto;
+}
+.board.is-3d .token.down .token-stand { opacity: .35; }
+.board.is-3d .token-disc { width: 100%; flex: none; }
+.board.is-3d .token-name { position: static; transform: none; margin-top: 2px; font-size: 11px; color: var(--text); }
+.board.is-3d .token-pole {
+  display: block; flex: 1; width: 1px; min-height: 4px;
+  background: linear-gradient(var(--c), transparent);
+}
+
+/* 视角按钮：场景右下角 */
+.view-tools { position: absolute; z-index: 6; right: 10px; bottom: 10px; display: flex; gap: 4px; }
+.view-tools .btn { background: var(--panel); backdrop-filter: blur(6px); min-width: 32px; }
+
+@media (prefers-reduced-motion: reduce) { .board, .board.is-3d .token { transition: none; } }
+
+/* ---------- 场景小摆设（props.js） ---------- */
+.prop { position: absolute; pointer-events: none; color: var(--accent); }
+.prop-stand { position: absolute; left: 0; width: 100%; }
+.prop svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* 平面视角：摆设缩小成淡淡的小图标，不挡棋子 */
+.board:not(.is-3d) .prop-stand { top: 50%; left: 50%; width: 60%; transform: translate(-50%, -50%); opacity: .35; max-height: 100%; }
+.board:not(.is-3d) .prop svg { height: auto; max-height: 100%; }
+/* 立体视角：站起来，朝着你 */
+.board.is-3d .prop { transform-style: preserve-3d; transform: translateZ(var(--z)); }
+.board.is-3d .prop-stand {
+  bottom: 50%; transform-origin: 50% 100%;
+  transform: rotateZ(calc(-1 * var(--rot))) rotateX(calc(-1 * var(--tilt)));
+  filter: drop-shadow(0 0 6px rgba(233, 201, 131, .25));
+}
+.board.is-3d .prop.float svg { animation: prop-bob 3.6s ease-in-out infinite; }
+@keyframes prop-bob { 50% { transform: translateY(-12%); } }
+@media (prefers-reduced-motion: reduce) { .board.is-3d .prop.float svg { animation: none; } }
+
+/* ---------- 钟盘立体（world.js 的小塔） ---------- */
+.w-base { fill: rgba(233, 201, 131, .05); stroke: var(--accent); stroke-width: 1; opacity: .55; vector-effect: non-scaling-stroke; }
+.w-base.tier { fill: rgba(8, 10, 30, .85); opacity: .8; }
+.w-base.secret, .w-tower.secret { stroke-dasharray: 3 4; }
+.w-tower { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .7; vector-effect: non-scaling-stroke; }
+.w-tower.faint { opacity: .3; }
+.w-place.fog .w-tower, .w-place.fog .w-base { opacity: .22; }
+.w-place.current .w-tower { opacity: 1; stroke-width: 1.6; }
+.w-place.current .w-base { opacity: 1; fill: rgba(233, 201, 131, .18); }
+.world-svg.d3 .w-numeral { opacity: .55; }
+
+/* 手机：场景沙盘占满宽度，头部按钮缩小，提示文字收起 */
+@media (max-width: 760px) {
+  .board-wrap.is-3d .board { width: min(100cqw, 100cqh * var(--cols) / var(--rows) * 1.4); }
+  .board.is-3d { --tilt: 50deg; }
+  .area-board .panel-head .btn { padding: 4px 8px; font-size: 12px; }
+  .area-board #board-hint { display: none; }
+  .view-tools { right: 6px; bottom: 6px; }
+}
 
 /* ---------- 行囊与线索（ledger.js）：类名都以 ledger- 开头 ---------- */
 .ledger { display: grid; gap: 6px; font-size: 13px; }

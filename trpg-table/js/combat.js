@@ -51,6 +51,7 @@
     const c = App.state.combat;
     App.$("#round-badge").textContent = c.active ? `第 ${c.round} 回合` : "未开始";
     const list = App.$("#turn-list");
+    list.hidden = !c.active; // 行动顺序条只在战斗中显示，叠在场景左上角
     const rows = c.active ? c.order.map((o, i) => ({ t: tokenOf(o.tokenId), init: o.init, i })).filter((r) => r.t)
                           : App.state.tokens.map((t, i) => ({ t, init: "–", i: -1 }));
     list.innerHTML = rows.length ? rows.map(({ t, init, i }) => {
@@ -68,7 +69,7 @@
     }).join("") : `<li class="empty">地图上还没有棋子</li>`;
 
     const log = App.$("#combat-log");
-    const items = App.state.log.slice(-40).reverse();
+    const items = App.state.log.slice(-12).reverse();
     log.innerHTML = items.length ? items.map((l) => `<li class="${l.tone}">${l.html}</li>`).join("")
                                  : `<li class="empty">掷骰和战斗的记录会出现在这里</li>`;
   }
@@ -77,7 +78,6 @@
     render,
     init() {
       App.$("#btn-initiative").addEventListener("click", () => {
-        if (App.state.boardMode === "world") App.state.boardMode = "grid"; // 开打时自动切到战场
         rollInitiative(); App.save();
       });
       App.$("#btn-next-turn").addEventListener("click", nextTurn);

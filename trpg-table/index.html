@@ -50,50 +50,45 @@
     <div class="panel-body" id="sheet"></div>
   </section>
 
-  <!-- ========== 地图 / 桌面区 ========== -->
+  <!-- ========== 当前场景（主界面中间） ==========
+       显示你现在所在的地方、场景里的人和他们的位置。打架也在这里。
+       整张匹诺康尼大地图放在弹窗里，点「匹诺康尼地图」打开。 -->
   <section class="area-board panel" aria-labelledby="board-title">
     <header class="panel-head">
-      <h2 id="board-title">桌面</h2>
-      <!-- 剧本带大地图时才显示：在大地图和格子战场之间切换 -->
-      <div class="seg" id="board-mode" role="tablist" hidden>
-        <button class="seg-btn" data-mode="world" role="tab">大地图</button>
-        <button class="seg-btn" data-mode="grid" role="tab">战场</button>
-      </div>
-      <button class="btn btn-small btn-ghost" id="btn-map-big" hidden title="地图展开后会暂时盖住战斗区和骰子区">收起地图</button>
-      <div class="panel-tools" id="grid-tools">
-        <button class="btn btn-small btn-ghost" id="btn-add-ally">+ 同伴</button>
-        <button class="btn btn-small btn-ghost" id="btn-add-enemy">+ 敌人</button>
-        <button class="btn btn-small btn-ghost" id="btn-remove-token" disabled>移除选中</button>
-      </div>
-    </header>
-    <div class="panel-body board-wrap">
-      <div class="board" id="board" aria-label="地图，可以拖动棋子"></div>
-      <div class="world" id="world" hidden></div>
-    </div>
-    <footer class="panel-foot hint" id="board-hint">拖动棋子移动位置。点一下棋子选中它。</footer>
-  </section>
-
-  <!-- ========== 战斗区 ========== -->
-  <section class="area-combat panel" aria-labelledby="combat-title">
-    <header class="panel-head">
-      <h2 id="combat-title">战斗</h2>
+      <h2 id="board-title">当前场景</h2>
+      <span class="scene-name" id="scene-name"></span>
       <div class="panel-tools">
+        <button class="btn btn-small btn-ghost" id="btn-world" hidden title="看整张匹诺康尼地图，选择要去的地方">匹诺康尼地图</button>
         <span class="round-badge" id="round-badge">未开始</span>
         <button class="btn btn-small" id="btn-initiative">投先攻</button>
         <button class="btn btn-small btn-ghost" id="btn-next-turn">下一位</button>
         <button class="btn btn-small btn-ghost" id="btn-end-combat">结束</button>
       </div>
     </header>
-    <div class="panel-body combat-body">
+    <div class="panel-body board-wrap">
+      <!-- 行动顺序条：叠在场景左上角 -->
       <ol class="turn-list" id="turn-list"></ol>
-      <ul class="log" id="combat-log" aria-live="polite"></ul>
+      <div class="view-tools" id="view-tools" role="group" aria-label="视角">
+        <button class="btn btn-small btn-ghost" data-view="rotl" aria-label="向左转 90 度" title="向左转">⟲</button>
+        <button class="btn btn-small btn-ghost" data-view="rotr" aria-label="向右转 90 度" title="向右转">⟳</button>
+        <button class="btn btn-small btn-ghost" data-view="d3" id="btn-d3">平面</button>
+      </div>
+      <div class="board" id="board" aria-label="当前场景，可以拖动棋子"></div>
     </div>
+    <footer class="panel-foot board-foot">
+      <span class="hint" id="board-hint">拖动棋子移动位置，点一下选中。</span>
+      <span class="panel-tools">
+        <button class="btn btn-small btn-ghost" id="btn-add-ally">+ 同伴</button>
+        <button class="btn btn-small btn-ghost" id="btn-add-enemy">+ 敌人</button>
+        <button class="btn btn-small btn-ghost" id="btn-remove-token" disabled>移除选中</button>
+      </span>
+    </footer>
   </section>
 
   <!-- ========== 骰子区 ========== -->
   <section class="area-dice panel" aria-labelledby="dice-title">
     <header class="panel-head">
-      <h2 id="dice-title">骰子</h2>
+      <h2 id="dice-title">判定</h2>
       <label class="field-inline small">
         <input type="checkbox" id="dice-to-dm" checked>
         <span>结果告诉 DM</span>
@@ -119,7 +114,19 @@
         </select>
         <button class="btn btn-small btn-accent">检定</button>
       </form>
+      <!-- 掷骰和战斗的记录 -->
+      <ul class="log" id="combat-log" aria-live="polite"></ul>
     </div>
+  </section>
+
+  <!-- ========== 线索与物品 ==========
+       内容由 js/ledger.js 渲染（DM 用标记增减，代码校验）。
+       ledger.js 还没加载时，先用一个只读的简易版顶上。 -->
+  <section class="area-ledger panel" aria-labelledby="ledger-title">
+    <header class="panel-head">
+      <h2 id="ledger-title">线索与物品</h2>
+    </header>
+    <div class="panel-body" id="ledger"></div>
   </section>
 
   <!-- ========== DM 区 ========== -->
@@ -140,6 +147,16 @@
   </section>
 
 </div>
+
+<!-- ========== 匹诺康尼大地图（弹窗） ========== -->
+<dialog class="dialog world-dialog" id="world-dialog" aria-labelledby="world-title">
+  <div class="world-dialog-head">
+    <h2 id="world-title">匹诺康尼</h2>
+    <span class="hint">点地点看介绍，点「前往」就会过去并告诉 DM。滚轮或双指缩放，拖动空白处移动。</span>
+    <button class="btn btn-small btn-ghost" id="world-close">关闭</button>
+  </div>
+  <div class="world-dialog-body"><div class="world" id="world"></div></div>
+</dialog>
 
 <!-- ========== 设置弹窗 ========== -->
 <dialog class="dialog" id="settings-dialog">
@@ -292,8 +309,10 @@
 <script src="js/store.js"></script>
 <script src="js/dice.js"></script>
 <script src="js/sheet.js"></script>
+<script src="js/props.js"></script>
 <script src="js/board.js"></script>
 <script src="js/world.js"></script>
+<script src="js/scene.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/facts.js"></script>
 <script src="js/director.js"></script>
