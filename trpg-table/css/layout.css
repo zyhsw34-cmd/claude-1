@@ -22,19 +22,19 @@ body {
   height: 100vh;
   height: 100dvh;
 
-  /* 宽屏：角色卡 | 桌面（下方是 战斗 + 骰子）| DM */
-  grid-template-columns: 270px minmax(0, 1fr) 290px minmax(320px, 400px);
-  grid-template-rows: auto minmax(0, 1fr) minmax(0, 350px);
+  /* 宽屏：角色卡 | 当前场景（下方是 判定 + 线索与物品）| DM */
+  grid-template-columns: 270px minmax(0, 1fr) minmax(0, 1fr) minmax(320px, 400px);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 340px);
   grid-template-areas:
     "header header header header"
     "sheet  board  board  dm"
-    "sheet  combat dice   dm";
+    "sheet  dice   ledger dm";
 }
 
 .area-header { grid-area: header; }
 .area-sheet  { grid-area: sheet; }
 .area-board  { grid-area: board; }
-.area-combat { grid-area: combat; }
+.area-ledger { grid-area: ledger; }
 .area-dice   { grid-area: dice; }
 .area-dm     { grid-area: dm; }
 
@@ -43,12 +43,12 @@ body {
   .app {
     height: auto;
     min-height: 100dvh;
-    grid-template-columns: minmax(0, 1fr) 270px minmax(300px, 360px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(300px, 360px);
     grid-template-rows: auto 460px 360px auto;
     grid-template-areas:
       "header header header"
       "board  board  dm"
-      "combat dice   dm"
+      "dice   ledger dm"
       "sheet  sheet  sheet";
   }
 }
@@ -57,34 +57,14 @@ body {
 @media (max-width: 760px) {
   .app {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 70dvh 420px 360px auto auto;
+    grid-template-rows: auto 70dvh 420px auto auto auto;
     grid-template-areas:
       "header"
       "dm"
       "board"
-      "combat"
       "dice"
+      "ledger"
       "sheet";
   }
 }
 
-/* ---------- 大地图展开：地图占掉战斗区和骰子区的位置 ----------
-   只在宽屏和平板横屏生效，手机上照常竖排。 */
-@media (min-width: 761px) {
-  .app.world-big .area-combat, .app.world-big .area-dice { display: none; }
-  .app.world-big {
-    grid-template-areas:
-      "header header header header"
-      "sheet  board  board  dm"
-      "sheet  board  board  dm";
-  }
-}
-@media (min-width: 761px) and (max-width: 1180px) {
-  .app.world-big {
-    grid-template-areas:
-      "header header header"
-      "board  board  dm"
-      "board  board  dm"
-      "sheet  sheet  sheet";
-  }
-}

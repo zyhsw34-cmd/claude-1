@@ -300,19 +300,17 @@ textarea { resize: none; }
 [data-path-name="记忆"] { --path-c: #8fd6ff; }
 [data-path-name="欢愉"] { --path-c: #ff8fb0; }
 
-/* ---------- 地图区：大地图 / 战场 切换 ---------- */
-.seg { display: inline-flex; border: 1px solid var(--panel-border); border-radius: var(--radius-m); overflow: hidden; margin-left: auto; margin-right: 8px; }
-.seg-btn {
-  padding: 3px 12px; font: inherit; font-size: 12px; letter-spacing: .08em;
-  background: transparent; color: var(--text-dim); border: none; cursor: pointer;
-}
-.seg-btn + .seg-btn { border-left: 1px solid var(--panel-border); }
-.seg-btn.on { color: var(--accent); background: var(--accent-soft); }
-
-.board-wrap.is-world { padding: 0; position: relative; overflow: hidden; }
+/* ---------- 匹诺康尼大地图弹窗 ---------- */
+.world-dialog { width: min(1200px, calc(100vw - 24px)); height: calc(100dvh - 24px); max-height: none; padding: 0; }
+.world-dialog[open] { display: flex; flex-direction: column; }
+.world-dialog-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--panel-border); }
+.world-dialog-head h2 { margin: 0; font-size: 16px; letter-spacing: .12em; }
+.world-dialog-head .hint { flex: 1; font-size: 12px; }
+.world-dialog-body { position: relative; flex: 1; min-height: 0; background: var(--board-bg); }
 .world { position: absolute; inset: 0; touch-action: none; user-select: none; }
 .world-svg { width: 100%; height: 100%; display: block; cursor: grab; }
 .world-svg:active { cursor: grabbing; }
+@media (max-width: 760px) { .world-dialog-head .hint { display: none; } }
 
 /* 钟盘底图：全是细线 */
 .w-dial line, .w-dial circle, .w-dial path { fill: none; vector-effect: non-scaling-stroke; }
@@ -433,8 +431,6 @@ textarea { resize: none; }
 @media (prefers-reduced-motion: reduce) {
   .w-hand, .w-node, .w-label.small, .pick { transition: none; }
 }
-/* 手机上地图本来就是单独一行，不需要「展开 / 收起」 */
-@media (max-width: 760px) { #btn-map-big { display: none !important; } }
 
 /* ---------- DM 记忆 / DM 看到了什么 / 消息小按钮（director.js、memory.js） ---------- */
 .area-dm .panel-head .panel-tools { margin-left: auto; display: flex; gap: 4px; }
@@ -464,3 +460,46 @@ textarea { resize: none; }
 .peek-body summary { cursor: pointer; padding: 6px 10px; font-size: 13px; color: var(--text-dim); }
 .peek-body pre { margin: 0; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.6;
   max-height: 50vh; overflow: auto; border-top: 1px solid var(--panel-border); }
+
+/* =========================================================
+   当前场景（主界面中间）
+   ========================================================= */
+.scene-name { font-size: 13px; color: var(--accent); letter-spacing: .06em; margin-right: auto; margin-left: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.area-board .panel-head { gap: 8px; }
+.board-wrap { position: relative; }
+.board-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* 场景里的区域：细线框 + 左上角小标题 */
+.zone { border-style: solid; border-color: var(--board-line); background: transparent; letter-spacing: .1em; }
+.zone::before { content: ""; position: absolute; left: -1px; top: -1px; width: 10px; height: 10px;
+  border-left: 1px solid var(--accent); border-top: 1px solid var(--accent); opacity: .7; }
+.zone.exit { border-style: dashed; color: var(--link); }
+.scene-watermark { position: absolute; right: 10px; bottom: 6px; font-size: 22px; letter-spacing: .3em;
+  color: var(--text-faint); opacity: .12; pointer-events: none; white-space: nowrap; }
+@media (max-width: 760px) { .scene-watermark { display: none; } }
+
+/* NPC（中立）棋子 */
+.token[data-kind="npc"] { --c: var(--text-dim); }
+.turn[data-kind="npc"] { --c: var(--text-dim); }
+
+/* 行动顺序条：战斗时叠在场景左上角，横着排（星铁的行动条在左上角） */
+.board-wrap > .turn-list {
+  position: absolute; z-index: 6; left: 10px; top: 10px; right: 10px;
+  flex-direction: row; flex-wrap: wrap; gap: 6px; pointer-events: none;
+}
+.board-wrap > .turn-list .turn {
+  pointer-events: auto; grid-template-columns: 22px auto auto; gap: 6px; padding: 4px 8px;
+  background: var(--panel); backdrop-filter: blur(6px); border: 1px solid var(--panel-border); border-left: 3px solid var(--c);
+}
+.board-wrap > .turn-list .turn .bar { width: 64px; }
+.board-wrap > .turn-list .turn.active { border-color: var(--accent); box-shadow: var(--glow); }
+
+/* 判定区里的记录：只占下面一小块 */
+.dice-body .log { margin-top: auto; max-height: 96px; overflow: auto; font-size: 12px; }
+
+/* ---------- 线索与物品（ledger.js 没加载时的简易版） ---------- */
+.ledger-fallback h3 { margin: 0 0 6px; font-size: 12px; font-weight: 400; letter-spacing: .2em; color: var(--accent); }
+.ledger-fallback ul { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ledger-fallback li { font-size: 13px; padding: 4px 8px; border-left: 1px solid var(--line-cold, var(--panel-border)); color: var(--text-dim); }
+.ledger-fallback li.empty { border: none; color: var(--text-faint); padding-left: 0; }

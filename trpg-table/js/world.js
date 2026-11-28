@@ -4,6 +4,7 @@
    画法：一面原创的钟盘。十二个「时刻」排在圆环上，中间是梦境大堂，
    下方连着现实层。全部用 SVG 线条画出来，不用任何图片。
 
+   现在它是一个弹窗（点「匹诺康尼地图」打开），主界面放的是当前场景小地图。
    操作：滚轮 / 双指缩放，拖动空白处平移，点地点弹出小卡片，
         点「前往」= 棋子移过去，并自动告诉 DM。
    ========================================================= */
@@ -172,8 +173,9 @@
       <circle r="17"></circle><text y="6">${esc(name)}</text></g>`;
   }
 
+  const dlg = () => App.$("#world-dialog");
   function render() {
-    if (!el()) return;
+    if (!el() || !dlg().open) return;   // 弹窗关着就不画
     const zoom = W / view.w;
     el().innerHTML = `
       <svg xmlns="${NS}" class="world-svg ${zoom > 1.5 ? "zoomed" : ""}" viewBox="${view.x} ${view.y} ${view.w} ${view.h}"
@@ -218,6 +220,7 @@
     const h = p.kind === "place" ? hourOf(p) : null;
     if (h && !S().visited.includes(h.id)) S().visited.push(h.id);
     openCard = null;
+    if (dlg().open) dlg().close();
     if (tellDm) App.dm.say(`我前往${App.placeFullName(p)}。`);
     else App.save();
   }
@@ -322,11 +325,19 @@
 
   Object.assign(App.world, {
     render,
+    open() {
+      if (!this.enabled()) return;
+      // 电脑上打开时顺便展示「你在这里」的卡片；手机屏幕小，就不挡图了
+      openCard = window.innerWidth > 700 ? (S().current || null) : null;
+      dlg().showModal();
+      render();
+    },
     enabled: () => !!App.preset().worldMap,
     init() {
       if (!this.enabled()) return;
       bind();
-      render();
+      App.$("#world-close").addEventListener("click", () => dlg().close());
+      dlg().addEventListener("click", (e) => { if (e.target === dlg()) dlg().close(); });
       App.subscribe(() => { if (!gesture) render(); });
     }
   });

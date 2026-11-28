@@ -28,6 +28,7 @@
   App.sheet.init();
   App.board.init();
   App.world.init();
+  App.scene.init();
   App.combat.init();
   App.dm.init();
   App.director.init();

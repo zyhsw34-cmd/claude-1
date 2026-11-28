@@ -1,6 +1,8 @@
 /* =========================================================
-   board.js —— 桌面（地图）区。
-   地图是一个格子网，棋子按格子吸附。电脑用鼠标拖，平板用手指拖。
+   board.js —— 当前场景（格子小地图）。
+   显示你现在所在地点的平面图和每个角色站在哪。
+   棋子按格子吸附，电脑用鼠标拖，平板用手指拖。
+   场景布置（区域、谁在场）由 scene.js 按地点自动换。
    ========================================================= */
 (function (App) {
   const el = () => App.$("#board");
@@ -25,8 +27,10 @@
     el().style.setProperty("--rows", b.rows);
     const active = activeTokenId();
 
+    const title = App.sceneTitle ? App.sceneTitle() : "";
     el().innerHTML =
-      b.zones.map((z) => `<div class="zone" style="left:${pct(z.x, b.cols)};top:${pct(z.y, b.rows)};width:${pct(z.w, b.cols)};height:${pct(z.h, b.rows)}">${App.esc(z.label)}</div>`).join("") +
+      (title ? `<div class="scene-watermark" aria-hidden="true">${App.esc(title)}</div>` : "") +
+      App.sceneZones().map((z) => `<div class="zone ${z.exit ? "exit" : ""}" style="left:${pct(z.x, b.cols)};top:${pct(z.y, b.rows)};width:${pct(z.w, b.cols)};height:${pct(z.h, b.rows)}">${App.esc(z.label)}</div>`).join("") +
       s.tokens.map((t) => {
         const down = t.kind !== "player" && t.hp <= 0;
         return `<div class="token ${t.id === s.selectedToken ? "selected" : ""} ${t.id === active ? "active" : ""}"
@@ -100,42 +104,17 @@
     });
   }
 
-  /* ---------- 大地图 / 战场 切换 ---------- */
-  function applyMode() {
-    const world = App.world && App.world.enabled();
-    const mode = world ? App.state.boardMode : "grid";
-    App.$("#board-mode").hidden = !world;
-    App.$("#board").hidden = mode !== "grid";
-    App.$("#world").hidden = mode !== "world";
-    App.$("#grid-tools").hidden = mode !== "grid";
-    App.$(".board-wrap").classList.toggle("is-world", mode === "world");
-    // 大地图默认展开（盖住战斗区和骰子区），可以收起
-    const big = mode === "world" && App.state.mapBig !== false;
-    App.$(".app").classList.toggle("world-big", big);
-    App.$("#btn-map-big").hidden = mode !== "world";
-    App.$("#btn-map-big").textContent = big ? "收起地图" : "展开地图";
-    App.$("#board-mode").querySelectorAll("[data-mode]").forEach((b) => {
-      b.classList.toggle("on", b.dataset.mode === mode);
-      b.setAttribute("aria-selected", b.dataset.mode === mode);
-    });
-    App.$("#board-hint").textContent = mode === "world"
-      ? "点地点看介绍，点「前往」就会移过去并告诉 DM。滚轮或双指缩放，拖动空白处移动地图。"
-      : "拖动棋子移动位置。点一下棋子选中它。";
-  }
-
   App.board = {
     render,
-    setMode(mode) { App.state.boardMode = mode; App.save(); applyMode(); },
     init() {
-      bind(); render(); applyMode();
-      App.$("#board-mode").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-mode]");
-        if (b) this.setMode(b.dataset.mode);
-      });
-      App.$("#btn-map-big").addEventListener("click", () => {
-        App.state.mapBig = App.state.mapBig === false; App.save(); applyMode();
-      });
-      App.subscribe(() => { if (!drag) render(); applyMode(); });
+      bind(); render();
+      // 有大地图的剧本：头部多一个「匹诺康尼地图」按钮，点开是一个大弹窗
+      const w = App.$("#btn-world");
+      if (App.world && App.world.enabled()) {
+        w.hidden = false;
+        w.addEventListener("click", () => App.world.open());
+      }
+      App.subscribe(() => { if (!drag) render(); });
     }
   };
 })(window.App);
