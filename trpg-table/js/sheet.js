@@ -15,7 +15,12 @@
     const path = p.paths && p.paths[c.className];
     const st = App.state;
 
+    const locked = !editing && st.started !== false;
     root().innerHTML = `
+      <div class="sheet-lockbar ${locked ? "" : "editing"}">
+        <span>${locked ? "数值由判定和 DM 自动更新" : "正在手动修改，改完点「完成」，会告诉 DM"}</span>
+        <button type="button" class="btn btn-small ${locked ? "btn-ghost" : "btn-accent"}" data-lock>${locked ? "✎ 手动修改" : "完成"}</button>
+      </div>
       <input class="sheet-name" data-f="name" value="${esc(c.name)}" aria-label="角色名">
       <div class="sheet-row"><span>${esc(p.classLabel)}</span>
         <select data-f="className">${p.classes.map((k) => `<option ${k === c.className ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
@@ -61,15 +66,51 @@
           <button class="btn btn-small btn-ghost" data-fac="${f.key}" data-d="1" aria-label="${esc(f.label)}好感加一">+</button>
         </div>`; }).join("")}</div>` : ""}
 
-      <div class="sheet-section">背包</div>
-      <textarea data-f="inventory" rows="3">${esc(c.inventory)}</textarea>
+      <div class="ledger-slot"></div>
       <div class="sheet-section">笔记</div>
-      <textarea data-f="notes" rows="4" placeholder="线索、NPC 名字…">${esc(c.notes)}</textarea>
+      <textarea data-f="notes" rows="4" placeholder="你自己的笔记（DM 看不到）">${esc(c.notes)}</textarea>
     `;
+    if (locked) {
+      root().querySelectorAll("input, textarea").forEach((x) => { if (x.dataset.f !== "notes") x.readOnly = true; });
+      root().querySelectorAll("select, .pip, .key-pill, [data-fac]").forEach((x) => { x.disabled = true; });
+    }
+    if (App.ledger) App.ledger.render();
   }
 
+  /* ---------- 手动修改：先解锁，改完对比一下，告诉 DM ---------- */
+  let editing = false, snap = null;
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  function snapshot() { const s = App.state; return { c: clone(s.character), keys: clone(s.keys || {}), fac: clone(s.factions || {}) }; }
+  function diff(a, b) {
+    const p = App.preset(), L = Object.assign({ luck: "幸运点", credits: "信用点" }, p.labels), out = [];
+    const cmp = (name, x, y) => { if (String(x ?? "") !== String(y ?? "")) out.push(`${name} ${x ?? "空"}→${y ?? "空"}`); };
+    cmp("名字", a.c.name, b.c.name); cmp(p.classLabel || "身份", a.c.className, b.c.className); cmp("来历", a.c.background, b.c.background);
+    p.attributes.forEach((t) => cmp(t.label, a.c.attrs[t.key] || 0, b.c.attrs[t.key] || 0));
+    cmp("生命", a.c.hp, b.c.hp); cmp(L.luck, a.c.luck, b.c.luck); cmp(L.credits, a.c.credits, b.c.credits); cmp("状态", a.c.status, b.c.status);
+    (p.keyItems || []).forEach((k) => cmp(k.label, a.keys[k.key] ? "已拿到" : "未拿到", b.keys[k.key] ? "已拿到" : "未拿到"));
+    (p.factions || []).forEach((f) => cmp(f.label + "好感", a.fac[f.key] || 0, b.fac[f.key] || 0));
+    return out;
+  }
+  function toggleLock() {
+    if (!editing) { editing = true; snap = snapshot(); render(); return; }
+    editing = false;
+    const changes = diff(snap, snapshot());
+    snap = null;
+    if (changes.length) {
+      App.dm.addSystem("玩家手动修改了角色卡：" + changes.join("，") + "。");
+      if (App.toast) App.toast("已记下 " + changes.length + " 处修改，DM 下一轮会知道", "good");
+    } else if (App.toast) App.toast("没有改动");
+    App.save(); render();
+  }
+
+  let byMouse = false;
   function bind() {
     const el = root();
+    // 用 mousedown 处理「完成」：不让输入框先失焦重画，免得按钮被换掉、点击丢失
+    el.addEventListener("mousedown", (e) => {
+      if (!e.target.closest("[data-lock]")) return;
+      e.preventDefault(); byMouse = true; setTimeout(() => { byMouse = false; }, 400); toggleLock();
+    });
     el.addEventListener("input", (e) => {
       const c = App.state.character, t = e.target;
       if (t.dataset.f) {
@@ -83,6 +124,7 @@
       if (e.target.dataset.attr || e.target.dataset.f === "hp") render(); // 刷新剩余点数和血条
     });
     el.addEventListener("click", (e) => {
+      if (e.target.closest("[data-lock]")) { if (!byMouse) toggleLock(); byMouse = false; return; }
       const pip = e.target.closest("[data-pip]");
       if (pip) {
         const i = +pip.dataset.pip, c = App.state.character;
