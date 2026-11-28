@@ -7,6 +7,8 @@
    ========================================================= */
 (function (App) {
   const CHECK_RE = /\[检定[:：]\s*([^\s\]]+)\s+(\d+)\s*\]/g;
+  // DM 给桌面的标记，例如【移动到：匹诺康尼拍卖大厅】【好感：猎犬家系+1】
+  const TAG_RE = /【(移动到|解锁地点|获得指针|好感)[:：]\s*([^】]+)】/g;
   const HISTORY = 30; // 最多带上最近多少条对话
   let busy = false;
 
@@ -22,6 +24,9 @@
         return a ? `<button class="btn btn-small btn-accent roll-request" data-attr="${a.key}" data-dc="${dc}" ${m.rolled ? "disabled" : ""}>🎲 ${App.esc(a.label)}检定 · 难度 ${dc}</button>`
                  : all;
       });
+    }
+    if (m.role === "assistant") {
+      body = body.replace(TAG_RE, (all, kind, val) => `<span class="tag-chip">◆ ${App.esc(kind)}：${App.esc(val.trim())}</span>`);
     }
     return `<div class="msg ${m.role === "assistant" ? "dm" : "player"}" data-i="${i}"><span class="msg-who">${App.esc(who)}</span>${body}</div>`;
   }
@@ -51,6 +56,7 @@
 
     const system = [
       p.dm.systemPrompt,
+      storyText(p),
       "",
       `【规则】检定 = d${r.die} + 属性值，≥ 难度即成功；骰出 ${r.critOn} 大成功，骰出 ${r.fumbleOn} 大失败。难度参考：${r.difficulties.map((d) => `${d.label}${d.dc}`).join("、")}。`,
       `可用属性：${p.attributes.map((a) => a.label).join("、")}。`,
@@ -59,7 +65,8 @@
       `属性：${attrs}。生命 ${c.hp}/${App.maxHp(c)}，幸运点 ${c.luck}，信用点 ${c.credits}。`,
       `背包：${c.inventory || "无"}。状态：${c.status || "正常"}。`,
       "",
-      `【桌面】${tokens}。${combat}`
+      `【桌面】${tokens}。${combat}`,
+      worldContext()
     ].join("\n");
 
     const out = [{ role: "system", content: system }];
@@ -72,6 +79,66 @@
       else out.push({ role, content });
     });
     return out;
+  }
+
+  /* 剧本里结构化的 story（幕、人物、物品、资料卡）→ 拼成文字给 DM */
+  function storyText(p) {
+    const st = p.story;
+    if (!st) return "";
+    const list = (a) => (a && a.length ? a.join("；") : "无");
+    const out = ["", "【剧本资料】", "前提：" + st.premise];
+    (st.acts || []).forEach((a) => out.push(
+      `${a.name}｜目标：${a.goal}｜可以透露：${list(a.reveal)}｜暂不能说：${list(a.secrets)}｜进入下一幕：${a.endWhen}`));
+    out.push("人物：");
+    (st.npcs || []).forEach((n) => out.push(
+      `- ${n.name}（${n.faction}）想要：${n.wants}。知道：${list(n.knows)}。不知道：${list(n.doesNotKnow)}。说话：${n.voice}。`));
+    if (st.items) out.push("剧本里的物品名：" + st.items.join("、") + "。新物品照星铁的命名法起名。");
+    (st.lore || []).forEach((l) => out.push(`资料（${l.keys.join("/")}）：${l.text}`));
+    if (st.endings) out.push("结局：" + st.endings.map((e, i) => `${i + 1}. ${e}`).join(" "));
+    return out.join("\n");
+  }
+
+  /* 剧本带大地图、势力、钥匙时，把进度也告诉 DM */
+  function worldContext() {
+    const p = App.preset(), st = App.state, out = [];
+    if (p.paths && p.paths[st.character.className]) out.push(`命途技能：${p.paths[st.character.className].skill}`);
+    if (p.worldMap && App.worldPlaces) {
+      const all = App.worldPlaces();
+      const cur = all.find((k) => k.id === st.map.current);
+      out.push(`【位置】玩家现在在：${cur ? App.placeFullName(cur) : "未知"}。`);
+      if (cur && cur.clues && cur.clues.length) out.push(`这里能发现的线索：${cur.clues.map((c) => c.name).join("、")}。`);
+      const been = st.map.visited.map((id) => all.find((k) => k.id === id)).filter(Boolean).map((k) => k.name);
+      if (been.length) out.push(`去过：${been.join("、")}。`);
+      out.push(`地图上的地点名：${all.filter((k) => !k.hidden).map((k) => k.name).join("、")}。`);
+      out.push(`隐藏地点「第十三时」${st.map.unlocked.includes("thirteenth-hour") ? "已经解锁" : "还没解锁"}。`);
+    }
+    if (p.keyItems) out.push(`【钥匙】${p.keyItems.map((k) => `${k.label}${st.keys[k.key] ? "已拿到" : "未拿到"}`).join("，")}。`);
+    if (p.factions) out.push(`【势力好感，−3 敌对到 +3 盟友】${p.factions.map((f) => `${f.label} ${(st.factions[f.key] || 0)}`).join("，")}。`);
+    return out.length ? "\n" + out.join("\n") : "";
+  }
+
+  /* DM 回复里的标记 → 改桌面。每条回复只执行一次。 */
+  function applyTags(m) {
+    if (m.tagsApplied) return;
+    m.tagsApplied = true;
+    const p = App.preset(), st = App.state;
+    for (const [, kind, raw] of m.content.matchAll(TAG_RE)) {
+      const val = raw.trim();
+      if (kind === "移动到" && App.findPlace) {
+        const pl = App.findPlace(val);
+        if (pl) { if (pl.hidden) App.world.unlock(pl.id); App.world.goTo(pl.id, false); }
+      } else if (kind === "解锁地点" && App.findPlace) {
+        const pl = App.findPlace(val);
+        if (pl) App.world.unlock(pl.id);
+      } else if (kind === "获得指针" && p.keyItems) {
+        const k = p.keyItems.find((x) => val.includes(x.label));
+        if (k) st.keys[k.key] = true;
+      } else if (kind === "好感" && p.factions) {
+        const f = p.factions.find((x) => val.includes(x.label) || val.includes(x.label.slice(0, 2)));
+        const d = /[-−－]\s*(\d)/.exec(val) ? -(+/[-−－]\s*(\d)/.exec(val)[1]) : /\+\s*(\d)/.exec(val) ? +/\+\s*(\d)/.exec(val)[1] : 0;
+        if (f && d) st.factions[f.key] = Math.max(-3, Math.min(3, (st.factions[f.key] || 0) + d));
+      }
+    }
   }
 
   /* ---------- 发送 ---------- */
@@ -93,6 +160,7 @@
       if (!App.settings.apiKey) await demo(reply, paint);
       else await stream(reply, paint);
       if (!reply.content.trim()) reply.content = "（DM 没有回话，再试一次？）";
+      applyTags(reply);
     } catch (err) {
       App.state.chat.pop();
       App.state.chat.push({ role: "error", content: "连接 DM 失败：" + (err.message || err) });

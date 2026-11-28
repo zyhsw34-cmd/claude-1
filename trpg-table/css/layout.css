@@ -67,3 +67,24 @@ body {
       "sheet";
   }
 }
+
+/* ---------- 大地图展开：地图占掉战斗区和骰子区的位置 ----------
+   只在宽屏和平板横屏生效，手机上照常竖排。 */
+@media (min-width: 761px) {
+  .app.world-big .area-combat, .app.world-big .area-dice { display: none; }
+  .app.world-big {
+    grid-template-areas:
+      "header header header header"
+      "sheet  board  board  dm"
+      "sheet  board  board  dm";
+  }
+}
+@media (min-width: 761px) and (max-width: 1180px) {
+  .app.world-big {
+    grid-template-areas:
+      "header header header"
+      "board  board  dm"
+      "board  board  dm"
+      "sheet  sheet  sheet";
+  }
+}

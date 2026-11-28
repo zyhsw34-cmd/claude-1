@@ -24,7 +24,7 @@ window.App = window.App || {};
     model: "deepseek-flash",
     thinking: false,
     theme: "starlight",
-    presetId: "default"
+    presetId: "penacony-13th-hour"   // 新设备默认打开匹诺康尼本；在「设置」里可以换
   };
   App.settings = Object.assign({}, DEFAULT_SETTINGS, JSON.parse(safeGet(SETTINGS_KEY) || "{}"));
   App.saveSettings = () => safeSet(SETTINGS_KEY, JSON.stringify(App.settings));
@@ -44,14 +44,28 @@ window.App = window.App || {};
       combat: { active: false, round: 0, turn: 0, order: [] },
       log: [],
       chat: [{ role: "assistant", content: p.dm.opening }],
-      demoIndex: 0
+      demoIndex: 0,
+      // 下面几项只有带大地图、建卡弹窗的剧本才用得上
+      started: !(p.paths && p.spawns),          // 还没在建卡弹窗里点「苏醒」时是 false
+      boardMode: p.worldMap ? "world" : "grid",  // world = 大地图，grid = 格子战场
+      map: { current: null, visited: [], unlocked: [] },
+      factions: {},                              // 势力好感，例如 { hound: -1 }
+      keys: {}                                   // 关键道具进度，例如 { hour: true }
     };
   };
+
+  /* 旧存档里没有的字段，补上默认值 */
+  function upgrade(s) {
+    const f = App.freshState();
+    ["boardMode", "map", "factions", "keys"].forEach((k) => { if (s[k] == null) s[k] = f[k]; });
+    if (s.started == null) s.started = true;
+    return s;
+  }
 
   function load() {
     try {
       const s = JSON.parse(safeGet(SAVE_KEY) || "null");
-      if (s && s.version === 1 && s.presetId === App.preset().id) return s;
+      if (s && s.version === 1 && s.presetId === App.preset().id) return upgrade(s);
     } catch (e) {}
     return App.freshState();
   }
@@ -86,7 +100,7 @@ window.App = window.App || {};
       App.settings.presetId = s.presetId;
       App.saveSettings();
     }
-    App.state = s;
+    App.state = upgrade(s);
     App.save();
   };
 

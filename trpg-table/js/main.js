@@ -27,7 +27,9 @@
   App.dice.init();
   App.sheet.init();
   App.board.init();
+  App.world.init();
   App.combat.init();
   App.dm.init();
   App.settingsUI.init();
+  App.intro.init();
 })(window.App);

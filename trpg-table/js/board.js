@@ -100,8 +100,42 @@
     });
   }
 
+  /* ---------- 大地图 / 战场 切换 ---------- */
+  function applyMode() {
+    const world = App.world && App.world.enabled();
+    const mode = world ? App.state.boardMode : "grid";
+    App.$("#board-mode").hidden = !world;
+    App.$("#board").hidden = mode !== "grid";
+    App.$("#world").hidden = mode !== "world";
+    App.$("#grid-tools").hidden = mode !== "grid";
+    App.$(".board-wrap").classList.toggle("is-world", mode === "world");
+    // 大地图默认展开（盖住战斗区和骰子区），可以收起
+    const big = mode === "world" && App.state.mapBig !== false;
+    App.$(".app").classList.toggle("world-big", big);
+    App.$("#btn-map-big").hidden = mode !== "world";
+    App.$("#btn-map-big").textContent = big ? "收起地图" : "展开地图";
+    App.$("#board-mode").querySelectorAll("[data-mode]").forEach((b) => {
+      b.classList.toggle("on", b.dataset.mode === mode);
+      b.setAttribute("aria-selected", b.dataset.mode === mode);
+    });
+    App.$("#board-hint").textContent = mode === "world"
+      ? "点地点看介绍，点「前往」就会移过去并告诉 DM。滚轮或双指缩放，拖动空白处移动地图。"
+      : "拖动棋子移动位置。点一下棋子选中它。";
+  }
+
   App.board = {
     render,
-    init() { bind(); render(); App.subscribe(() => { if (!drag) render(); }); }
+    setMode(mode) { App.state.boardMode = mode; App.save(); applyMode(); },
+    init() {
+      bind(); render(); applyMode();
+      App.$("#board-mode").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-mode]");
+        if (b) this.setMode(b.dataset.mode);
+      });
+      App.$("#btn-map-big").addEventListener("click", () => {
+        App.state.mapBig = App.state.mapBig === false; App.save(); applyMode();
+      });
+      App.subscribe(() => { if (!drag) render(); applyMode(); });
+    }
   };
 })(window.App);
