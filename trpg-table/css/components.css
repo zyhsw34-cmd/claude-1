@@ -464,3 +464,52 @@ textarea { resize: none; }
 .peek-body summary { cursor: pointer; padding: 6px 10px; font-size: 13px; color: var(--text-dim); }
 .peek-body pre { margin: 0; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.6;
   max-height: 50vh; overflow: auto; border-top: 1px solid var(--panel-border); }
+
+/* ---------- 行囊与线索（ledger.js）：类名都以 ledger- 开头 ---------- */
+.ledger { display: grid; gap: 6px; font-size: 13px; }
+.ledger-slot:empty { display: none; }
+.ledger-head { display: flex; align-items: center; justify-content: space-between; font-family: var(--font-display); letter-spacing: .1em; color: var(--text-dim); }
+.ledger-act { color: var(--accent); font-size: 12px; letter-spacing: .05em; }
+.ledger-scene { font-size: 12px; color: var(--text-dim); padding: 6px 8px; border-left: 2px solid var(--link); background: var(--surface); line-height: 1.6; }
+.ledger-sub { font-size: 11px; letter-spacing: .15em; color: var(--text-faint); margin-top: 4px; }
+.ledger-sub small { color: var(--text-dim); margin-left: 4px; letter-spacing: 0; }
+.ledger-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.ledger-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: var(--radius-s);
+  border: 1px solid var(--accent-soft); background: var(--surface); line-height: 1.6; }
+.ledger-pill.person { border-color: var(--ally); padding-right: 8px; }
+.ledger-pill.outside { border-style: dashed; }
+.ledger-pill button { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+.ledger-pill button:hover { color: var(--bad); }
+.ledger-empty { color: var(--text-faint); }
+.ledger-add { display: flex; gap: 6px; }
+.ledger-add input { flex: 1; }
+.ledger-clues { margin: 0; padding-left: 20px; display: grid; gap: 2px; color: var(--text); }
+.ledger-clues li::marker { color: var(--accent); }
+.ledger-clues .ledger-empty { list-style: none; margin-left: -20px; }
+.ledger-more { font-size: 12px; justify-self: start; }
+
+/* 聊天里的记账小标签 */
+.ledger-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; font-family: var(--font-body); }
+.ledger-chip { font: inherit; font-size: 12px; padding: 1px 8px; border-radius: var(--radius-s); cursor: pointer;
+  background: var(--surface); color: var(--text); border: 1px solid var(--panel-border); }
+.ledger-chip.plus { border-color: var(--good); color: var(--good); }
+.ledger-chip.minus { border-color: var(--bad); color: var(--bad); }
+.ledger-chip.outside { border-style: dashed; }
+.ledger-chip.undone { text-decoration: line-through; opacity: .55; }
+.ledger-chip.fail, .ledger-chip.wait { opacity: .5; cursor: default; border-style: dotted; }
+
+/* 右下角的小提示 */
+.ledger-toasts { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 6px; z-index: 1000; pointer-events: none; max-width: calc(100vw - 32px); }
+.ledger-toast { padding: 8px 14px; border-radius: var(--radius-m); background: var(--panel); border: 1px solid var(--panel-border);
+  color: var(--text); font-size: 13px; box-shadow: var(--shadow); backdrop-filter: blur(6px); animation: ledger-in .2s var(--ease); transition: opacity .5s, transform .5s; }
+.ledger-toast.good { border-color: var(--good); }
+.ledger-toast.bad { border-color: var(--bad); }
+.ledger-toast.out { opacity: 0; transform: translateY(6px); }
+@keyframes ledger-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* 角色卡的「手动修改」锁 */
+.sheet-lockbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text-faint); margin-bottom: 6px; }
+.sheet-lockbar.editing { color: var(--warn); }
+#sheet input[readonly] { cursor: default; }
+#sheet input[readonly]:focus { outline: none; }
+#ledger .ledger-head > span { visibility: hidden; } /* 主界面的区块已经有标题了 */
