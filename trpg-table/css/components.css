@@ -282,3 +282,156 @@ textarea { resize: none; }
   .brand-sub { display: none; }
   .topbar-actions .field-inline span { display: none; }
 }
+
+/* =========================================================
+   以下是《醒于第十三时》加的零件：大地图、建卡弹窗、命途色、势力好感
+   规则来自美术研究：细线为主、黑白金加一个信息色、一屏只有一块实心金色
+   ========================================================= */
+[hidden] { display: none !important; }
+
+/* ---------- 命途点缀色（原创），只用在命途标签上 ---------- */
+[data-path-name="毁灭"] { --path-c: #ef7a5d; }
+[data-path-name="巡猎"] { --path-c: #6fd3b2; }
+[data-path-name="智识"] { --path-c: #7fa6ff; }
+[data-path-name="存护"] { --path-c: #d9a85b; }
+[data-path-name="丰饶"] { --path-c: #9fdc7c; }
+[data-path-name="同谐"] { --path-c: #d39cff; }
+[data-path-name="虚无"] { --path-c: #a3a9bd; }
+[data-path-name="记忆"] { --path-c: #8fd6ff; }
+[data-path-name="欢愉"] { --path-c: #ff8fb0; }
+
+/* ---------- 地图区：大地图 / 战场 切换 ---------- */
+.seg { display: inline-flex; border: 1px solid var(--panel-border); border-radius: var(--radius-m); overflow: hidden; margin-left: auto; margin-right: 8px; }
+.seg-btn {
+  padding: 3px 12px; font: inherit; font-size: 12px; letter-spacing: .08em;
+  background: transparent; color: var(--text-dim); border: none; cursor: pointer;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--panel-border); }
+.seg-btn.on { color: var(--accent); background: var(--accent-soft); }
+
+.board-wrap.is-world { padding: 0; position: relative; overflow: hidden; }
+.world { position: absolute; inset: 0; touch-action: none; user-select: none; }
+.world-svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.world-svg:active { cursor: grabbing; }
+
+/* 钟盘底图：全是细线 */
+.w-dial line, .w-dial circle, .w-dial path { fill: none; vector-effect: non-scaling-stroke; }
+.w-edge { stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 2 6; opacity: .7; }
+.w-edge-tick { stroke: var(--text-faint); stroke-width: 1; opacity: .35; }
+.w-thin { stroke: var(--panel-border); stroke-width: 1; }
+.w-thin.faint { opacity: .5; }
+.w-ray { stroke: var(--accent); stroke-width: 1; opacity: .16; }
+.w-tick { stroke: var(--text-faint); stroke-width: 1; opacity: .6; }
+.w-tick.major { stroke: var(--accent); opacity: .7; }
+.w-numeral { fill: var(--text-faint); font: 18px var(--font-mono); letter-spacing: .12em; text-anchor: middle; }
+.w-track { stroke: var(--accent); stroke-width: 1; opacity: .45; }
+.w-spoke { stroke: var(--panel-border); stroke-width: 1; stroke-dasharray: 1 5; }
+.w-airship { stroke: var(--link); stroke-width: 1; stroke-dasharray: 6 6; opacity: .45; }
+.w-dreamline { stroke: var(--link); stroke-width: 1; stroke-dasharray: 3 5; opacity: .6; }
+.w-note { fill: var(--text-faint); font-size: 16px; letter-spacing: .2em; text-anchor: middle; }
+.w-note.start { text-anchor: start; }
+
+/* 当前所在钟点的「时针」 */
+.w-hand { fill: var(--accent); opacity: .22; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; transition: d .4s var(--ease); }
+
+/* 地点 */
+.w-place { cursor: pointer; outline: none; }
+.w-node { fill: var(--board-bg); stroke: var(--text-dim); stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: stroke var(--speed), fill var(--speed); }
+.w-pin { fill: var(--text-faint); }
+.w-label { fill: var(--text); font-size: 24px; letter-spacing: .06em; text-anchor: middle; paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+.w-label.small { font-size: 17px; fill: var(--text-dim); opacity: 0; transition: opacity var(--speed); }
+.w-sublabel { fill: var(--text-faint); font-size: 15px; letter-spacing: .1em; text-anchor: middle; }
+.zoomed .w-label.small { opacity: 1; }
+.w-place.place:not(.center):not(.reality):not(.edge):not(.secret) .w-node { stroke: var(--text-faint); }
+.w-place.fog { opacity: .5; }
+.w-place.visited .w-node { stroke: var(--accent); }
+.w-place.visited .w-pin { fill: var(--accent); }
+.w-place:hover .w-node, .w-place:focus-visible .w-node { stroke: var(--accent); fill: var(--accent-soft); }
+.w-place:hover .w-label.small, .w-place:focus-visible .w-label.small { opacity: 1; }
+.w-place.center .w-node { stroke: var(--accent); fill: var(--accent-soft); }
+.w-place.center .w-label { font-size: 24px; }
+.w-place.reality .w-node { stroke: var(--link); }
+.w-place.edge .w-node { stroke: var(--text-faint); stroke-dasharray: 3 3; }
+.w-place.edge .w-label { fill: var(--text-dim); }
+.w-place.secret .w-node { stroke: var(--accent); fill: var(--accent-soft); }
+.w-secret-ring { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.w-place.current .w-node { stroke: var(--accent); stroke-width: 2; }
+
+/* 玩家棋子 */
+.w-token circle { fill: var(--accent); stroke: var(--board-bg); stroke-width: 2; }
+.w-token text { fill: var(--accent-text); font: 700 20px var(--font-body); text-anchor: middle; }
+.w-token { pointer-events: none; }
+
+.world-zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; }
+.world-zoom .btn { min-width: 34px; background: var(--panel); }
+
+/* 地点卡片 */
+.world-card {
+  position: absolute; left: 12px; top: 12px; width: min(300px, calc(100% - 24px));
+  padding: 14px 16px 12px; background: var(--panel); backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border); border-left: 2px solid var(--accent);
+  border-radius: var(--radius-m); box-shadow: var(--shadow);
+}
+.world-card h3 { margin: 2px 0 6px; font-size: 16px; font-weight: 600; letter-spacing: .04em; }
+.world-card p { margin: 0 0 8px; color: var(--text-dim); font-size: 13px; line-height: 1.7; }
+.world-card-hour { font-size: 11px; letter-spacing: .2em; color: var(--accent); }
+.world-card-subs { font-size: 12px; color: var(--text-faint); margin-bottom: 8px; }
+.world-card-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.world-card-x { position: absolute; right: 6px; top: 4px; background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; }
+.linkish { background: none; border: none; padding: 0; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- DM 回复里的标记 ---------- */
+.tag-chip {
+  display: inline-block; margin: 2px 4px 2px 0; padding: 0 8px;
+  font-size: 12px; color: var(--accent); border: 1px solid var(--accent-soft); border-radius: var(--radius-s);
+}
+
+/* ---------- 角色卡：命途技能、钥匙、势力 ---------- */
+.path-skill { font-size: 12px; color: var(--text-dim); line-height: 1.6; padding: 6px 8px; margin: 4px 0; border-left: 2px solid var(--path-c, var(--accent)); background: var(--surface); }
+.path-tag { color: var(--path-c, var(--accent)); margin-right: 6px; letter-spacing: .1em; }
+.key-row { display: flex; gap: 6px; }
+.key-pill {
+  flex: 1; padding: 4px 0; font: inherit; font-size: 12px; cursor: pointer;
+  color: var(--text-faint); background: transparent; border: 1px dashed var(--panel-border); border-radius: var(--radius-s);
+}
+.key-pill.on { color: var(--accent); border: 1px solid var(--accent); background: var(--accent-soft); }
+.fac-list { display: flex; flex-direction: column; gap: 2px; }
+.fac { display: grid; grid-template-columns: 1fr auto 28px auto; align-items: center; gap: 4px; font-size: 13px; }
+.fac-name { color: var(--text-dim); }
+.fac-val { text-align: center; font: 600 14px var(--font-mono); }
+.fac-val.good { color: var(--good); }
+.fac-val.bad { color: var(--bad); }
+.fac .btn { padding: 0 8px; min-height: 22px; }
+
+/* ---------- 建卡弹窗 ---------- */
+.intro-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+.intro-kicker { font-size: 11px; letter-spacing: .3em; color: var(--accent); }
+.intro-dialog h2 { margin: 2px 0 6px; letter-spacing: .08em; }
+.intro-step { margin: 16px 0 8px; font-size: 14px; letter-spacing: .1em; display: flex; align-items: center; gap: 8px; }
+.intro-step::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--panel-border), transparent); }
+.intro-no { font: 13px var(--font-mono); color: var(--accent); letter-spacing: .1em; }
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pick-grid.spawns { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.pick {
+  position: relative; display: flex; flex-direction: column; gap: 3px; text-align: left;
+  padding: 10px 12px; font: inherit; color: var(--text); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--panel-border); border-radius: var(--radius-m);
+  transition: border-color var(--speed), background var(--speed);
+}
+.pick:hover { background: var(--surface-hover); }
+.pick.on { border-color: var(--accent); background: var(--accent-soft); }
+.path-pick { border-left: 2px solid var(--path-c, var(--panel-border)); }
+.path-pick .pick-title { color: var(--path-c, var(--text)); }
+.pick-title { font-size: 15px; letter-spacing: .06em; }
+.pick-line { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.pick-meta { font: 11px var(--font-mono); color: var(--text-faint); }
+.spawn-pick .pick-title { padding-right: 22px; }
+.pick-no { position: absolute; right: 10px; top: 8px; font: 11px var(--font-mono); color: var(--text-faint); }
+.intro-skill { min-height: 1.6em; margin: 8px 0 0; font-size: 13px; color: var(--text-dim); }
+.intro-skill b { color: var(--accent); font-weight: 600; margin-right: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .w-hand, .w-node, .w-label.small, .pick { transition: none; }
+}
+/* 手机上地图本来就是单独一行，不需要「展开 / 收起」 */
+@media (max-width: 760px) { #btn-map-big { display: none !important; } }

@@ -76,7 +76,10 @@
   App.combat = {
     render,
     init() {
-      App.$("#btn-initiative").addEventListener("click", () => { rollInitiative(); App.save(); });
+      App.$("#btn-initiative").addEventListener("click", () => {
+        if (App.state.boardMode === "world") App.state.boardMode = "grid"; // 开打时自动切到战场
+        rollInitiative(); App.save();
+      });
       App.$("#btn-next-turn").addEventListener("click", nextTurn);
       App.$("#btn-end-combat").addEventListener("click", () => { endCombat(); App.save(); });
       App.$("#turn-list").addEventListener("click", (e) => {

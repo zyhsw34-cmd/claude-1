@@ -54,7 +54,13 @@
   <section class="area-board panel" aria-labelledby="board-title">
     <header class="panel-head">
       <h2 id="board-title">桌面</h2>
-      <div class="panel-tools">
+      <!-- 剧本带大地图时才显示：在大地图和格子战场之间切换 -->
+      <div class="seg" id="board-mode" role="tablist" hidden>
+        <button class="seg-btn" data-mode="world" role="tab">大地图</button>
+        <button class="seg-btn" data-mode="grid" role="tab">战场</button>
+      </div>
+      <button class="btn btn-small btn-ghost" id="btn-map-big" hidden title="地图展开后会暂时盖住战斗区和骰子区">收起地图</button>
+      <div class="panel-tools" id="grid-tools">
         <button class="btn btn-small btn-ghost" id="btn-add-ally">+ 同伴</button>
         <button class="btn btn-small btn-ghost" id="btn-add-enemy">+ 敌人</button>
         <button class="btn btn-small btn-ghost" id="btn-remove-token" disabled>移除选中</button>
@@ -62,6 +68,7 @@
     </header>
     <div class="panel-body board-wrap">
       <div class="board" id="board" aria-label="地图，可以拖动棋子"></div>
+      <div class="world" id="world" hidden></div>
     </div>
     <footer class="panel-foot hint" id="board-hint">拖动棋子移动位置。点一下棋子选中它。</footer>
   </section>
@@ -169,18 +176,47 @@
   </form>
 </dialog>
 
+<!-- ========== 开局建卡弹窗（剧本带命途和苏醒地点时才会出现） ========== -->
+<dialog class="dialog intro-dialog" id="intro-dialog">
+  <form method="dialog" class="dialog-body">
+    <div class="intro-kicker">新的旅程</div>
+    <h2 id="intro-title">开局</h2>
+    <p class="hint">你什么都不记得了。只知道两件事：自己走在哪条命途上，以及自己在哪里醒来。</p>
+
+    <div class="intro-step"><span class="intro-no">01</span>选择命途</div>
+    <div class="pick-grid" id="intro-paths"></div>
+    <p class="intro-skill" id="intro-skill"></p>
+
+    <div class="intro-step"><span class="intro-no">02</span>选择苏醒地点</div>
+    <div class="pick-grid spawns" id="intro-spawns"></div>
+
+    <label class="field">
+      <span>名字（可以先空着，剧情里再取）</span>
+      <input id="intro-name" maxlength="12" placeholder="无名者" autocomplete="off">
+    </label>
+
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" id="intro-cancel">稍后</button>
+      <button type="button" class="btn btn-accent" id="intro-go" disabled>苏醒</button>
+    </div>
+  </form>
+</dialog>
+
 <!--
   脚本按顺序加载。没有用任何框架，也不需要"编译"。
   presets/ 里是剧本预设，想加新预设就复制一个文件改内容，再在这里加一行。
 -->
 <script src="presets/default.js"></script>
+<script src="presets/penacony-13th-hour.js"></script>
 <script src="js/store.js"></script>
 <script src="js/dice.js"></script>
 <script src="js/sheet.js"></script>
 <script src="js/board.js"></script>
+<script src="js/world.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/dm.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/intro.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
