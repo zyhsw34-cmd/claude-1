@@ -9,7 +9,7 @@
   // 认 [检定:身手 13]，也认 【判定:身手 威胁13】 这种写法
   const CHECK_RE = /[\[【](?:检定|判定)[:：]\s*([^\s\]】]+)\s+(?:威胁|难度)?\s*(\d+)\s*[\]】]/g;
   // DM 给桌面的标记，例如【移动到：匹诺康尼拍卖大厅】【好感：猎犬家系+1】
-  const TAG_RE = /【(移动到|解锁地点|获得指针|好感|推进|线索)[:：]\s*([^】]+)】/g;
+  const TAG_RE = /【(移动到|解锁地点|获得指针|好感)[:：]\s*([^】]+)】/g;
   const HISTORY = 30; // 最多带上最近多少条对话
   let busy = false;
 
@@ -28,7 +28,8 @@
     if (m.role === "note") return `<div class="msg system">${App.esc(m.content)}</div>`;
     if (m.role === "error") return `<div class="msg system error">${App.esc(m.content)}</div>`;
     const who = m.role === "assistant" ? "DM" : m.kind === "roll" ? "骰子" : m.kind === "fix" ? "你（纠正）" : App.state.character.name || "你";
-    let body = App.esc(m.content);
+    const raw = m.role === "assistant" && App.ledger ? App.ledger.strip(m.content).replace(/\n{3,}/g, "\n\n").trim() : m.content;
+    let body = App.esc(raw);
     if (m.role === "assistant") {
       body = body.replace(CHECK_RE, (all, attr, dc) => {
         const a = App.attrByLabel(attr);
@@ -38,6 +39,7 @@
                  : all;
       });
       const isLast = i === lastDmIndex();
+      if (App.ledger) body += App.ledger.chips(m, i); // 获得/失去/线索… 小标签，点了能撤销
       body += `<span class="msg-tools">
         <button class="btn btn-ghost btn-small" data-act="pin" title="把这段（或你选中的文字）钉进记忆，DM 会一直记得">📌 钉住</button>
         ${isLast && !busy ? `<button class="btn btn-ghost btn-small" data-act="wrong" title="DM 说错了？写一句哪里不对，让它重写">↻ 这不对</button>` : ""}
@@ -180,7 +182,7 @@
       else await stream(reply, paint);
       if (!reply.content.trim()) reply.content = "（DM 没有回话，再试一次？）";
       applyTags(reply);
-      App.director?.afterReply(reply); // 【推进】【线索】，见 director.js
+      App.ledger?.afterReply(reply); // 【获得】【失去】【线索】【推进】【场景】…，见 ledger.js
     } catch (err) {
       App.state.chat.pop();
       App.state.chat.push({ role: "error", content: "连接 DM 失败：" + (err.message || err) });
@@ -210,7 +212,7 @@
         messages: buildMessages(),
         stream: true,
         thinking: { type: s.thinking ? "enabled" : "disabled" },
-        temperature: s.thinking ? 1.0 : (s.temperature ?? 0.8) // 思考模式下官方会忽略它
+        temperature: s.thinking ? 1.0 : (s.temperature ?? 0.7) // 思考模式下官方会忽略它
       })
     });
     if (!res.ok) {
@@ -285,7 +287,7 @@
           const m = App.state.chat[+t.closest(".msg").dataset.i];
           if (t.dataset.act === "pin") {
             const sel = String(window.getSelection?.() || "").trim();
-            App.memory.pin(sel || m.content.replace(CHECK_RE, "").replace(TAG_RE, "").trim());
+            App.memory.pin(sel || App.ledger.strip(m.content).replace(CHECK_RE, "").replace(TAG_RE, "").trim());
           } else if (t.dataset.act === "wrong") {
             App.$("#wrong-text").value = "";
             App.$("#wrong-dialog").showModal();

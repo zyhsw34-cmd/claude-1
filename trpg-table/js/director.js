@@ -42,6 +42,12 @@
     st.stall = st.stall || 0;
     return st;
   };
+  /* 幕的名字本身带「序章」「第一幕」时就直接用，不再加编号 */
+  App.actLabel = (i) => {
+    const a = (App.preset().story?.acts || [])[i];
+    if (!a) return "";
+    return /^(序章|第.{1,3}幕|终章|尾声)/.test(a.name) ? `《${a.name}》` : `第 ${i + 1} 幕《${a.name}》`;
+  };
   App.currentAct = () => {
     const acts = App.preset().story?.acts || [];
     return acts.length ? acts[Math.min(App.story().act, acts.length - 1)] : null;
@@ -58,7 +64,13 @@
     "5. NPC 只知道他们资料里写的事。他们不知道的事，就算你知道，他们也不能说。",
     "6. 不确定的官方设定，宁可含糊带过或用原创内容，也不要编造官方人物的经历和官方地名。",
     "7. 玩家偏离主线时不要硬拉回来，让世界通过 NPC、事件或线索自然地给出方向。",
-    "8. 玩家真的发现了一条线索时，在回复末尾单独写一行【线索：线索名】。本幕结束条件达成时，单独写一行【推进：下一幕】。没发生就不要写。"
+    "8. 只写和「当前场景」有关的东西。新出现的人、物、事件，必须和当前场景或本幕目标有关；一旦写出来，后面就要接着用上，不能出现一次就丢掉。拿不准就别加。",
+    "9. 只描写玩家这次说的行动和它的直接结果，不替玩家多走一步，也不一次塞进好几件新事。NPC 的举动要符合他们的「想要」和说话方式。",
+    "10. 桌面会根据下面这些标记自动记账（每个单独一行，写在回复末尾，玩家看到的是小标签）：",
+    "   【获得：物品名】【失去：物品名】只有真的拿到或用掉、交出时才写；失去的东西必须在背包里。",
+    "   【线索：线索名】玩家真的发现了一条线索。【推进：下一幕】本幕结束条件达成。",
+    "   【生命：-2】【星芒：-1】数值变化（受伤、治疗、消耗）。【登场：人名】【退场：人名】NPC 进入或离开当前场景。",
+    "11. 每条回复的最后一行必须是【场景：……】，用一句话记下现在在哪、谁在场、正在发生什么（玩家看不到，下一轮你会从这里接着写）。"
   ].join("\n");
 
   /* ---------- 2 规则 ---------- */
@@ -99,12 +111,12 @@
     const st = App.story(), a = App.currentAct(), next = acts[st.act + 1];
     const list = (arr) => (arr || []).map((x) => "- " + x).join("\n");
     return [
-      `【当前这一幕：第 ${st.act + 1} 幕《${a.name}》（共 ${acts.length} 幕）】`,
+      `【当前这一幕：${App.actLabel(st.act)}（全本共 ${acts.length} 段）】`,
       a.goal ? "本幕目标：" + a.goal : "",
       a.reveal?.length ? "本幕可以透露：\n" + list(a.reveal) : "",
       a.secrets?.length ? "未解锁的秘密（只能暗示，不能说破）：\n" + list(a.secrets) : "",
       a.endWhen ? "本幕结束条件：" + a.endWhen : "",
-      next ? `下一幕是《${next.name}》，现在还没到，不要提前演。` : "这是最后一幕。",
+      next ? `下一段是《${next.name}》，现在还没到，不要提前演。` : "这是最后一幕。",
       !next && App.preset().story?.endings?.length ? "可能的结局（由玩家的选择决定，不要替玩家选）：\n" + list(App.preset().story.endings) : ""
     ].filter(Boolean).join("\n");
   }
@@ -118,7 +130,8 @@
     if (!npcs?.length) return "";
     const hay = recentText(8) + "\n" + (App.facts.placeName() || "");
     const here = App.facts.place();
-    const full = npcs.filter((n) => hay.includes(n.name) || (here?.npcs || []).includes(n.id));
+    const pres = App.ledger ? App.ledger.present() : [];
+    const full = npcs.filter((n) => pres.includes(n.name) || hay.includes(n.name) || (here?.npcs || []).includes(n.id));
     const rest = npcs.filter((n) => !full.includes(n));
     const out = ["【NPC】"];
     full.forEach((n) => {
@@ -130,7 +143,7 @@
         n.doesNotKnow?.length ? "不知道（绝不能说出）：" + n.doesNotKnow.join("；") : ""
       ].filter(Boolean).join("\n"));
     });
-    if (rest.length) out.push("其他登场人物：" + rest.map((n) => n.name + (n.faction ? "（" + n.faction + "）" : "")).join("、"));
+    if (rest.length) out.push("下面这些人现在不在场，也没被提到。除非本幕目标需要、而且有合理的理由，不要让他们突然出现：" + rest.map((n) => n.name).join("、"));
     return out.join("\n");
   }
 
@@ -140,7 +153,7 @@
     if (st.pins.length) out.push("【玩家钉住的重要笔记（一定要记得）】\n" + st.pins.map((x) => "- " + x).join("\n"));
     if (st.summary.trim()) out.push("【前情摘要（更早的对话已经压缩成这样）】\n" + st.summary.trim());
     const cards = App.lore.active();
-    if (cards.length) out.push("【相关资料卡（因为最近提到了相关词）】\n" + cards.map((c) => `■ ${c.keys[0]}：${c.text}`).join("\n"));
+    if (cards.length) out.push("【相关资料卡（只是背景参考，帮你说对设定；不需要在回复里专门提到）】\n" + cards.map((c) => `■ ${c.keys[0]}：${c.text}`).join("\n"));
     return out.join("\n\n");
   }
 
@@ -148,11 +161,12 @@
   function reminder() {
     const a = App.currentAct(), st = App.story();
     const bits = [];
-    if (a) bits.push(`现在是第 ${st.act + 1} 幕《${a.name}》${a.goal ? "，目标：" + a.goal : ""}。`);
+    if (a) bits.push(`现在是${App.actLabel(st.act)}${a.goal ? "，目标：" + a.goal : ""}。`);
     if (a?.secrets?.length) bits.push("不要说破未解锁的秘密。");
     if (a?.endWhen) bits.push(`满足「${a.endWhen}」时写【推进：下一幕】。`);
-    if (st.stall >= 4) bits.push(`玩家已经 ${st.stall} 轮没有新进展，这一轮请让 NPC 主动出现、发生一个事件，或给出一条线索，把故事往前推。`);
-    bits.push("事实以事实表为准；有风险的行动先写判定标记再停下。");
+    if (st.scene) bits.push(`上一轮的场景：${st.scene}。从这里接着写。`);
+    if (st.stall >= 6) bits.push(`玩家已经 ${st.stall} 轮没有新进展。如果合适，让当前场景里已经在的人或东西给一点提示，帮玩家找到方向；不要凭空加新人物。`);
+    bits.push("事实以事实表为准；有风险的行动先写判定标记再停下；最后一行写【场景：…】。");
     return "\n\n【本轮提醒·玩家看不到】" + bits.join("");
   }
 
@@ -201,8 +215,7 @@
     st.lastSig = sig;
   }
 
-  /* ---------- DM 回复里的【推进】【线索】标记 ---------- */
-  const STORY_TAG = /【(推进|线索)[:：]\s*([^】]+)】/g;
+  /* ---------- 改幕数（【推进】标记由 ledger.js 处理） ---------- */
   function setAct(n) {
     const acts = App.preset().story?.acts || [];
     if (!acts.length) return;
@@ -210,21 +223,10 @@
     const to = Math.max(0, Math.min(acts.length - 1, n));
     if (to === st.act) return;
     st.act = to;
-    App.dm.addSystem(`剧情进入第 ${to + 1} 幕《${acts[to].name}》`);
+    App.dm.addSystem(`剧情进入${App.actLabel(to)}`);
   }
-  function afterReply(m) {
-    if (m.storyTagsApplied) return;
-    m.storyTagsApplied = true;
-    const st = App.story();
-    for (const [, kind, raw] of m.content.matchAll(STORY_TAG)) {
-      const v = raw.trim();
-      if (kind === "推进") setAct(st.act + 1);
-      else if (kind === "线索" && v && !st.clues.includes(v)) st.clues.push(v);
-    }
-  }
-
   App.director = {
-    build, preview, reminder, beforeTurn, afterReply, setAct,
+    build, preview, reminder, beforeTurn, setAct,
     init() {
       App.$("#btn-peek").addEventListener("click", preview);
     }

@@ -100,7 +100,7 @@
     if (!t) return;
     const st = App.story();
     if (!st.pins.includes(t)) st.pins.push(t);
-    App.dm.addSystem("已钉住：" + t);
+    App.toast?.("已钉住，DM 会一直记得", "good");
     App.save();
   }
 
@@ -115,7 +115,7 @@
     const st = App.story();
     const acts = App.preset().story?.acts || [];
     App.$("#mem-act-wrap").hidden = !acts.length;
-    App.$("#mem-act").innerHTML = acts.map((a, i) => `<option value="${i}" ${i === st.act ? "selected" : ""}>第 ${i + 1} 幕 · ${App.esc(a.name)}</option>`).join("");
+    App.$("#mem-act").innerHTML = acts.map((a, i) => `<option value="${i}" ${i === st.act ? "selected" : ""}>${App.esc(App.actLabel(i))}</option>`).join("");
     App.$("#mem-summary").value = st.summary;
     App.$("#mem-summary-meta").textContent = st.summarizedUpTo
       ? `已经整理了前 ${st.summarizedUpTo} 条对话。` : "对话还不长，暂时不需要摘要。";
@@ -143,23 +143,31 @@
   }
 
   function bind() {
-    App.$("#mem-act").addEventListener("change", (e) => { App.director.setAct(+e.target.value); App.save(); renderPanel(); });
+    App.$("#mem-act").addEventListener("change", (e) => { App.director.setAct(+e.target.value); App.toast?.("剧情进度已改", "good"); App.save(); renderPanel(); });
     App.$("#btn-memory").addEventListener("click", open);
-    App.$("#mem-summary").addEventListener("change", (e) => { App.story().summary = e.target.value; App.save(); });
+    App.$("#mem-summary").addEventListener("change", (e) => {
+      App.story().summary = e.target.value;
+      App.dm.addSystem("玩家手动修改了前情摘要。");
+      App.toast?.("摘要已保存，DM 下一轮会用新的", "good");
+      App.save();
+    });
     App.$("#memory-dialog").addEventListener("click", (e) => {
       const b = e.target.closest("[data-del]");
       if (!b) return;
       const st = App.story(), i = +b.dataset.i;
-      ({ pin: st.pins, clue: st.clues, lore: st.lore })[b.dataset.del].splice(i, 1);
+      const kind = b.dataset.del, [gone] = ({ pin: st.pins, clue: st.clues, lore: st.lore })[kind].splice(i, 1);
+      const what = { pin: "钉住的笔记", clue: "线索", lore: "资料卡" }[kind];
+      App.dm.addSystem(`玩家手动删掉了${what}：${typeof gone === "string" ? gone : (gone?.keys || []).join("、")}`);
+      App.toast?.(`已删掉${what}`, "bad");
       App.save(); renderPanel();
     });
     onAdd("#mem-pin-form", () => {
       const v = App.$("#mem-pin-text").value.trim();
-      if (v) { App.story().pins.push(v.slice(0, 200)); App.$("#mem-pin-text").value = ""; App.save(); renderPanel(); }
+      if (v) { App.story().pins.push(v.slice(0, 200)); App.$("#mem-pin-text").value = ""; App.toast?.("已钉住", "good"); App.save(); renderPanel(); }
     });
     onAdd("#mem-clue-form", () => {
       const v = App.$("#mem-clue-text").value.trim();
-      if (v) { App.story().clues.push(v); App.$("#mem-clue-text").value = ""; App.save(); renderPanel(); }
+      if (v) { App.story().clues.push(v); App.$("#mem-clue-text").value = ""; App.dm.addSystem("玩家手动记下了一条线索：" + v); App.toast?.("线索：" + v, "good"); App.save(); renderPanel(); }
     });
     onAdd("#mem-lore-form", () => {
       const keys = App.$("#mem-lore-keys").value.split(/[,，、\s]+/).map((x) => x.trim()).filter(Boolean);
@@ -168,6 +176,7 @@
       const st = App.story(); st.lore = st.lore || [];
       st.lore.push({ keys, text });
       App.$("#mem-lore-keys").value = ""; App.$("#mem-lore-text").value = "";
+      App.toast?.("资料卡已加上", "good");
       App.save(); renderPanel();
     });
     App.$("#mem-summarize").addEventListener("click", async () => {

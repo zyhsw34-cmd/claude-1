@@ -40,7 +40,8 @@
     if (c.luck != null) res.push(`${L.luck || "幸运点"} ${c.luck}`);
     if (c.credits != null) res.push(`${L.credits || "信用点"} ${c.credits}`);
     if (res.length) lines.push(res.join("，") + "。");
-    lines.push(`背包：${c.inventory && String(c.inventory).trim() ? c.inventory : "空"}。状态：${c.status || "正常"}。`);
+    const bag = App.ledger ? App.ledger.items() : String(c.inventory || "").split(/[、，,]/).filter(Boolean);
+    lines.push(`背包（只有这些）：${bag.length ? bag.join("、") : "空"}。状态：${c.status || "正常"}。`);
 
     // 位置（剧本地图）
     if (p.worldMap && s.map) {
@@ -51,7 +52,7 @@
       hidden.forEach((h) => lines.push(`隐藏地点「${h.name}」${asList(s.map.unlocked).includes(h.id) ? "已经解锁" : "还没解锁"}。`));
       const here = findPlace(s.map.current);
       const clues = asList(here?.clues).map(nameOf).filter(Boolean);
-      if (clues.length) lines.push(`这里能发现的线索（玩家还不一定发现了）：${clues.join("、")}。`);
+      if (clues.length) lines.push(`这里藏着的线索（玩家调查对了才给，不要主动抖出来）：${clues.join("、")}。`);
     }
     if (p.keyItems && s.keys) {
       lines.push("指针：" + p.keyItems.map((k) => `${k.label}${s.keys[k.key] ? "已拿到" : "未拿到"}`).join("，") + "。");
@@ -60,6 +61,9 @@
       lines.push("势力好感（−3 敌对到 +3 盟友）：" + p.factions.map((f) => `${f.label} ${sign(s.factions[f.key] || 0)}`).join("，") + "。");
     }
     lines.push(`已发现的线索：${st.clues.length ? st.clues.join("、") : "还没有"}。`);
+    if (st.scene) lines.push(`当前场景：${st.scene}`);
+    const pres = App.ledger ? App.ledger.present() : [];
+    lines.push(`在场的 NPC：${pres.length ? pres.join("、") : "没有"}。`);
 
     // 桌面
     const others = (s.tokens || []).filter((t) => t.kind !== "player");
