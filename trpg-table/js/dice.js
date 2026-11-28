@@ -44,9 +44,16 @@
     const nat = mode === "adv" ? Math.max(a, b) : mode === "dis" ? Math.min(a, b) : a;
     const total = nat + bonus;
     const crit = nat >= r.critOn, fumble = nat <= r.fumbleOn;
-    const success = crit || (!fumble && total >= dc);
+    // 档位由代码算：差值 = 合计 − 难度；骰出最大升一档，骰出最小降一档
+    const margin = total - dc;
+    let tier = App.tierOf ? App.tierOf(margin) : (margin >= 0 ? 2 : 3);
+    const tiers = App.tiers ? App.tiers() : [];
+    if (crit) tier = Math.max(0, tier - 1);
+    if (fumble) tier = Math.min(tiers.length - 1, tier + 1);
+    const tierLabel = tiers[tier]?.label || "";
+    const success = tiers.length ? tier <= tiers.findIndex((t) => t.min === 0) : (crit || (!fumble && total >= dc));
     return {
-      attrKey, dc, mode, nat, bonus, total, crit, fumble, success,
+      attrKey, dc, mode, nat, bonus, total, crit, fumble, success, margin, tier, tierLabel,
       rolls: mode === "normal" ? [a] : [a, b]
     };
   }
@@ -83,12 +90,14 @@
       const c = check(attrKey, dc, mode || "normal");
       const label = App.attrLabel(attrKey);
       const modeText = { normal: "", adv: "（优势）", dis: "（劣势）" }[c.mode];
-      const verdict = c.crit ? "大成功！" : c.fumble ? "大失败…" : c.success ? "成功" : "失败";
+      const verdict = (c.tierLabel || (c.success ? "成功" : "失败")) + (c.crit ? "（骰出最大，升一档）" : c.fumble ? "（骰出最小，降一档）" : "");
       const sign = c.bonus >= 0 ? "+" : "";
       show(c.nat, `${label}检定${modeText}<br><b>${c.total}</b> = ${c.rolls.join("/")} ${sign}${c.bonus}　vs ${dc}　<b>${verdict}</b>`,
         c.crit ? "crit" : c.fumble ? "fumble" : "");
-      App.log(`${label}检定${modeText} <b>${c.total}</b> vs ${dc} → <b>${verdict}</b>`, c.success ? "good" : "bad");
-      tellDM(`${label}检定${modeText}：骰出 ${c.rolls.join("/")}，${sign}${c.bonus}，合计 ${c.total}，难度 ${dc}，${verdict}`, fromDM);
+      App.log(`${label}判定${modeText} <b>${c.total}</b> vs ${dc} → <b>${App.esc(verdict)}</b>`, c.success ? "good" : "bad");
+      const ms = c.margin >= 0 ? "+" + c.margin : c.margin;
+      tellDM(`【判定结果·程序计算】${label}${modeText}：骰出 ${c.rolls.join("/")}，${sign}${c.bonus}，合计 ${c.total}，难度 ${dc}，差值 ${ms} → ${verdict}。` +
+        (c.tierLabel ? `请严格按「${c.tierLabel}」描写结果，不要改档。` : ""), fromDM);
       return c;
     },
 

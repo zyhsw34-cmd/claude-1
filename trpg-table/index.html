@@ -127,6 +127,10 @@
     <header class="panel-head">
       <h2 id="dm-title">DM</h2>
       <span class="status-dot" id="dm-status">演示模式</span>
+      <div class="panel-tools">
+        <button class="btn btn-small btn-ghost" id="btn-memory" title="前情摘要、钉住的笔记、线索、资料卡">记忆</button>
+        <button class="btn btn-small btn-ghost" id="btn-peek" title="看看这一轮会发给 AI 的全部资料">DM 看到了什么</button>
+      </div>
     </header>
     <div class="panel-body chat" id="chat" aria-live="polite"></div>
     <form class="chat-input" id="chat-form">
@@ -202,6 +206,83 @@
   </form>
 </dialog>
 
+<!-- ========== 记忆弹窗 ========== -->
+<dialog class="dialog memory-dialog" id="memory-dialog">
+  <form method="dialog" class="dialog-body">
+    <h2>DM 的记忆</h2>
+    <p class="hint">这里的东西每一轮都会交给 DM。写错了可以直接改。</p>
+
+    <div class="mem-section" id="mem-act-wrap">
+      <h3>剧情进度</h3>
+      <select id="mem-act"></select>
+      <small class="hint">DM 写【推进：下一幕】时会自动往后走；觉得不对可以在这里手动改。</small>
+    </div>
+
+    <div class="mem-section">
+      <h3>钉住的笔记 <small>一直带着</small></h3>
+      <ul class="mem-list" id="mem-pins"></ul>
+      <div class="mem-add" id="mem-pin-form" data-form>
+        <input id="mem-pin-text" maxlength="200" placeholder="例如：我答应过多莉帮她交房租">
+        <button type="button" class="btn btn-small" data-submit>钉住</button>
+      </div>
+    </div>
+
+    <div class="mem-section">
+      <h3>已发现的线索</h3>
+      <ul class="mem-list" id="mem-clues"></ul>
+      <div class="mem-add" id="mem-clue-form" data-form>
+        <input id="mem-clue-text" maxlength="80" placeholder="手动补一条线索">
+        <button type="button" class="btn btn-small" data-submit>添加</button>
+      </div>
+    </div>
+
+    <div class="mem-section">
+      <h3>前情摘要 <small id="mem-summary-meta"></small></h3>
+      <textarea id="mem-summary" rows="7" placeholder="对话变长以后，DM 会自动把较早的内容整理到这里。"></textarea>
+      <button type="button" class="btn btn-small" id="mem-summarize">现在整理一次</button>
+    </div>
+
+    <div class="mem-section">
+      <h3>资料卡 <small>最近的对话里出现关键词时才带上</small></h3>
+      <ul class="mem-list mem-cards" id="mem-lore"></ul>
+      <div class="mem-add mem-add-lore" id="mem-lore-form" data-form>
+        <input id="mem-lore-keys" placeholder="关键词，用顿号隔开：多莉、筑梦师">
+        <textarea id="mem-lore-text" rows="2" placeholder="卡片内容"></textarea>
+        <button type="button" class="btn btn-small" data-submit>加一张卡</button>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="btn btn-accent" value="close">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ========== DM 看到了什么 ========== -->
+<dialog class="dialog peek-dialog" id="peek-dialog">
+  <form method="dialog" class="dialog-body">
+    <h2>这一轮 DM 会看到的资料</h2>
+    <p class="hint" id="peek-meta"></p>
+    <div id="peek-body" class="peek-body"></div>
+    <div class="dialog-actions">
+      <button class="btn btn-accent" value="close">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ========== 这不对 ========== -->
+<dialog class="dialog" id="wrong-dialog">
+  <form method="dialog" class="dialog-body">
+    <h2>DM 哪里说错了？</h2>
+    <p class="hint">写一句就行。上一条回复会被撤掉，DM 会带着你的话重写。</p>
+    <textarea id="wrong-text" rows="3" placeholder="例如：我背包里没有钥匙；多莉不可能知道第十三时"></textarea>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" value="cancel">算了</button>
+      <button class="btn btn-accent" value="send">让它重写</button>
+    </div>
+  </form>
+</dialog>
+
 <!--
   脚本按顺序加载。没有用任何框架，也不需要"编译"。
   presets/ 里是剧本预设，想加新预设就复制一个文件改内容，再在这里加一行。
@@ -214,7 +295,10 @@
 <script src="js/board.js"></script>
 <script src="js/world.js"></script>
 <script src="js/combat.js"></script>
+<script src="js/facts.js"></script>
+<script src="js/director.js"></script>
 <script src="js/dm.js"></script>
+<script src="js/memory.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/intro.js"></script>
 <script src="js/main.js"></script>

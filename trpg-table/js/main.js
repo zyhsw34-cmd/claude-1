@@ -30,6 +30,8 @@
   App.world.init();
   App.combat.init();
   App.dm.init();
+  App.director.init();
+  App.memory.init();
   App.settingsUI.init();
   App.intro.init();
 })(window.App);
