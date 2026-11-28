@@ -130,8 +130,27 @@
     renderLedger();
   }
 
+  /* 【登场：名字】【退场：名字】（ledger.js 解析后调用这里） */
+  const findNpc = (name) => ((App.preset().story && App.preset().story.npcs) || [])
+    .find((n) => n.name === name || aliases(n).some((a) => name.includes(a)));
+  function enter(name) {
+    const npc = findNpc(name), b = App.preset().board;
+    const short = npc ? shortName(npc) : String(name).slice(0, 4);
+    if (App.state.tokens.some((t) => (npc && t.npcId === npc.id) || t.name === short)) return;
+    const taken = new Set(App.state.tokens.map((t) => `${t.x},${t.y}`));
+    let x = b.cols - 2, y = 1;
+    for (let i = 0; i < b.cols * b.rows && taken.has(`${x},${y}`); i++) { x--; if (x < 1) { x = b.cols - 2; y = (y + 1) % b.rows; } }
+    App.state.tokens.push({ id: App.uid(), kind: "npc", npcId: npc ? npc.id : null, name: short, x, y, hp: 10, maxHp: 10, initBonus: 1 });
+    if (npc && !st().met.includes(npc.id)) st().met.push(npc.id);
+  }
+  function leave(name) {
+    const npc = findNpc(name), short = npc ? shortName(npc) : String(name).slice(0, 4);
+    App.state.tokens = App.state.tokens.filter((t) => t.kind === "player" || !((npc && t.npcId === npc.id) || t.name === short));
+    App.state.combat.order = App.state.combat.order.filter((o) => App.state.tokens.some((t) => t.id === o.tokenId));
+  }
+
   App.scene = {
-    enterPlace,
+    enterPlace, enter, leave,
     init() {
       // 老存档：第一次打开时，当前位置的场景直接认作「已经布置好」，不打乱棋子
       const s = st();
