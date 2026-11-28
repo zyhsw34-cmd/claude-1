@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="starlight">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>跑团桌面</title>
+
+<!--
+  样式分三层，想改外观时按这个顺序找：
+  1. css/theme.css      颜色、字体、圆角、阴影（只有变量，换主题改这里）
+  2. css/layout.css     页面怎么划分区块（哪个区放哪、多宽）
+  3. css/components.css 按钮、卡片、骰子、棋子这些零件长什么样
+-->
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ========== 顶栏 ========== -->
+  <header class="area-header topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <span class="brand-name">跑团桌面</span>
+      <span class="brand-sub" id="preset-name">预设</span>
+    </div>
+    <nav class="topbar-actions">
+      <label class="field-inline">
+        <span>主题</span>
+        <select id="theme-select"></select>
+      </label>
+      <button class="btn btn-ghost" id="btn-export" title="把当前存档下载成文件">导出存档</button>
+      <label class="btn btn-ghost" title="读取之前导出的存档文件">
+        导入存档<input type="file" id="file-import" accept=".json,application/json" hidden>
+      </label>
+      <button class="btn" id="btn-settings">设置</button>
+    </nav>
+  </header>
+
+  <!-- ========== 角色卡区 ========== -->
+  <section class="area-sheet panel" aria-labelledby="sheet-title">
+    <header class="panel-head">
+      <h2 id="sheet-title">角色卡</h2>
+      <button class="btn btn-small btn-ghost" id="btn-sheet-reset" title="恢复成预设里的示例角色">重置</button>
+    </header>
+    <div class="panel-body" id="sheet"></div>
+  </section>
+
+  <!-- ========== 地图 / 桌面区 ========== -->
+  <section class="area-board panel" aria-labelledby="board-title">
+    <header class="panel-head">
+      <h2 id="board-title">桌面</h2>
+      <div class="panel-tools">
+        <button class="btn btn-small btn-ghost" id="btn-add-ally">+ 同伴</button>
+        <button class="btn btn-small btn-ghost" id="btn-add-enemy">+ 敌人</button>
+        <button class="btn btn-small btn-ghost" id="btn-remove-token" disabled>移除选中</button>
+      </div>
+    </header>
+    <div class="panel-body board-wrap">
+      <div class="board" id="board" aria-label="地图，可以拖动棋子"></div>
+    </div>
+    <footer class="panel-foot hint" id="board-hint">拖动棋子移动位置。点一下棋子选中它。</footer>
+  </section>
+
+  <!-- ========== 战斗区 ========== -->
+  <section class="area-combat panel" aria-labelledby="combat-title">
+    <header class="panel-head">
+      <h2 id="combat-title">战斗</h2>
+      <div class="panel-tools">
+        <span class="round-badge" id="round-badge">未开始</span>
+        <button class="btn btn-small" id="btn-initiative">投先攻</button>
+        <button class="btn btn-small btn-ghost" id="btn-next-turn">下一位</button>
+        <button class="btn btn-small btn-ghost" id="btn-end-combat">结束</button>
+      </div>
+    </header>
+    <div class="panel-body combat-body">
+      <ol class="turn-list" id="turn-list"></ol>
+      <ul class="log" id="combat-log" aria-live="polite"></ul>
+    </div>
+  </section>
+
+  <!-- ========== 骰子区 ========== -->
+  <section class="area-dice panel" aria-labelledby="dice-title">
+    <header class="panel-head">
+      <h2 id="dice-title">骰子</h2>
+      <label class="field-inline small">
+        <input type="checkbox" id="dice-to-dm" checked>
+        <span>结果告诉 DM</span>
+      </label>
+    </header>
+    <div class="panel-body dice-body">
+      <div class="dice-result" id="dice-result" aria-live="polite">
+        <div class="die-face" id="die-face">20</div>
+        <div class="dice-detail" id="dice-detail">点下面的骰子试试</div>
+      </div>
+      <div class="dice-buttons" id="dice-buttons"></div>
+      <form class="dice-expr" id="dice-expr-form">
+        <input id="dice-expr" placeholder="例如 2d6+3" autocomplete="off">
+        <button class="btn btn-small">投</button>
+      </form>
+      <form class="check-form" id="check-form">
+        <select id="check-attr" aria-label="用哪个属性"></select>
+        <label class="field-inline small">难度<input id="check-dc" type="number" value="13" min="1" max="40"></label>
+        <select id="check-mode" aria-label="优势或劣势">
+          <option value="normal">普通</option>
+          <option value="adv">优势</option>
+          <option value="dis">劣势</option>
+        </select>
+        <button class="btn btn-small btn-accent">检定</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ========== DM 区 ========== -->
+  <section class="area-dm panel" aria-labelledby="dm-title">
+    <header class="panel-head">
+      <h2 id="dm-title">DM</h2>
+      <span class="status-dot" id="dm-status">演示模式</span>
+    </header>
+    <div class="panel-body chat" id="chat" aria-live="polite"></div>
+    <form class="chat-input" id="chat-form">
+      <textarea id="chat-text" rows="2" placeholder="你想做什么？（Enter 发送，Shift+Enter 换行）"></textarea>
+      <button class="btn btn-accent" id="chat-send">发送</button>
+    </form>
+  </section>
+
+</div>
+
+<!-- ========== 设置弹窗 ========== -->
+<dialog class="dialog" id="settings-dialog">
+  <form method="dialog" class="dialog-body" id="settings-form">
+    <h2>设置</h2>
+    <label class="field">
+      <span>DeepSeek API 密钥</span>
+      <input type="password" id="set-key" placeholder="sk-..." autocomplete="off">
+      <small>只保存在这台设备的浏览器里，不会上传到代码仓库。留空就是演示模式。</small>
+    </label>
+    <label class="field">
+      <span>接口地址</span>
+      <input id="set-base" placeholder="https://api.deepseek.com">
+    </label>
+    <label class="field">
+      <span>模型名</span>
+      <input id="set-model" list="model-options" placeholder="deepseek-flash">
+      <datalist id="model-options">
+        <option value="deepseek-flash">
+        <option value="deepseek-v4-pro">
+      </datalist>
+      <small>按 DeepSeek 官方文档（2026 年 11 月）：deepseek-flash 便宜快速，deepseek-v4-pro 更强更贵。</small>
+    </label>
+    <label class="field-inline">
+      <input type="checkbox" id="set-thinking">
+      <span>深度思考（更慢，但剧情可能更有条理）</span>
+    </label>
+    <label class="field">
+      <span>剧本预设</span>
+      <select id="set-preset"></select>
+    </label>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" value="cancel">取消</button>
+      <button class="btn btn-accent" value="save" id="settings-save">保存</button>
+    </div>
+    <hr>
+    <button type="button" class="btn btn-danger btn-small" id="btn-wipe">清空本机存档（密钥保留）</button>
+  </form>
+</dialog>
+
+<!--
+  脚本按顺序加载。没有用任何框架，也不需要"编译"。
+  presets/ 里是剧本预设，想加新预设就复制一个文件改内容，再在这里加一行。
+-->
+<script src="presets/default.js"></script>
+<script src="js/store.js"></script>
+<script src="js/dice.js"></script>
+<script src="js/sheet.js"></script>
+<script src="js/board.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/dm.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
