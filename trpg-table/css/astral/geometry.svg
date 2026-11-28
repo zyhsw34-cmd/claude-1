@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" fill="none">
+  <!--
+    构成主义几何层：大圆环、星轨椭圆、斜线、刻度。
+    全部是细线（stroke-width 0.6~1.5），透明度很低，只当"底纹"。
+    金色 = rgb(233,201,131)，冷白 = rgb(180,205,255)
+  -->
+
+  <!-- 右上方的大"天体仪"：三层同心圆 + 刻度环 + 十字准线 -->
+  <g transform="translate(1210 330)">
+    <circle r="470" stroke="rgb(180,205,255)" stroke-opacity=".10" stroke-width=".8"/>
+    <circle r="380" stroke="rgb(233,201,131)" stroke-opacity=".22" stroke-width="1"/>
+    <circle r="372" stroke="rgb(233,201,131)" stroke-opacity=".10" stroke-width=".6"/>
+    <!-- 刻度：用虚线画出一圈短线 -->
+    <circle r="398" stroke="rgb(233,201,131)" stroke-opacity=".28" stroke-width="10" stroke-dasharray="1 24"/>
+    <circle r="398" stroke="rgb(233,201,131)" stroke-opacity=".40" stroke-width="22" stroke-dasharray="1.5 225"/>
+    <circle r="250" stroke="rgb(180,205,255)" stroke-opacity=".14" stroke-width=".8" stroke-dasharray="3 9"/>
+    <!-- 一段加粗的弧，像轨道上被点亮的一段 -->
+    <circle r="380" stroke="rgb(233,201,131)" stroke-opacity=".55" stroke-width="2.2"
+            stroke-dasharray="360 2028" transform="rotate(118)"/>
+    <circle r="120" stroke="rgb(233,201,131)" stroke-opacity=".18" stroke-width=".8"/>
+    <circle r="6" fill="rgb(233,201,131)" fill-opacity=".5"/>
+    <path d="M-620 0H620M0 -560V620" stroke="rgb(180,205,255)" stroke-opacity=".08" stroke-width=".8"/>
+    <!-- 斜放的正方形，构成主义常见的"旋转方块" -->
+    <rect x="-180" y="-180" width="360" height="360" transform="rotate(45)"
+          stroke="rgb(180,205,255)" stroke-opacity=".12" stroke-width=".8"/>
+  </g>
+
+  <!-- 横穿画面的倾斜星轨（椭圆） -->
+  <ellipse cx="760" cy="560" rx="980" ry="210" transform="rotate(-23 760 560)"
+           stroke="rgb(180,205,255)" stroke-opacity=".14" stroke-width="1"/>
+  <ellipse cx="760" cy="560" rx="1060" ry="260" transform="rotate(-23 760 560)"
+           stroke="rgb(233,201,131)" stroke-opacity=".10" stroke-width=".7" stroke-dasharray="6 10"/>
+
+  <!-- 平行斜线：给画面一个"向右上冲"的方向感 -->
+  <g stroke="rgb(233,201,131)" stroke-width=".8">
+    <path d="M-40 1040L900 -40" stroke-opacity=".16"/>
+    <path d="M10 1040L950 -40" stroke-opacity=".08"/>
+    <path d="M60 1040L1000 -40" stroke-opacity=".05"/>
+  </g>
+
+  <!-- 左下的小圆和半圆块面 -->
+  <g transform="translate(240 820)">
+    <circle r="150" stroke="rgb(180,205,255)" stroke-opacity=".12" stroke-width=".8"/>
+    <path d="M-150 0A150 150 0 0 1 150 0Z" fill="rgb(233,201,131)" fill-opacity=".035"/>
+    <circle r="190" stroke="rgb(180,205,255)" stroke-opacity=".08" stroke-width="8" stroke-dasharray="1 14"/>
+  </g>
+
+  <!-- 点缀：交点处的小菱形 -->
+  <g fill="rgb(233,201,131)" fill-opacity=".55">
+    <path d="M430 520l5 -5l5 5l-5 5z"/>
+    <path d="M1210 -56l4 -4l4 4l-4 4z"/>
+    <path d="M820 50l4 -4l4 4l-4 4z"/>
+  </g>
+
+  <!-- 角落坐标刻度 -->
+  <g stroke="rgb(180,205,255)" stroke-opacity=".18" stroke-width=".8">
+    <path d="M40 40H140M40 40V140"/>
+    <path d="M1560 960H1460M1560 960V860"/>
+  </g>
+</svg>
