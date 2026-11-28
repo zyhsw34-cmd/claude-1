@@ -503,3 +503,115 @@ textarea { resize: none; }
 .ledger-fallback ul { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .ledger-fallback li { font-size: 13px; padding: 4px 8px; border-left: 1px solid var(--line-cold, var(--panel-border)); color: var(--text-dim); }
 .ledger-fallback li.empty { border: none; color: var(--text-faint); padding-left: 0; }
+
+/* =========================================================
+   立体沙盘：当前场景斜放在桌上，区域有高度，角色是立牌
+   全部是 CSS 3D，没有图片和外部库。点「平面」回到俯视图。
+   ========================================================= */
+.cell { position: absolute; width: calc(100% / var(--cols)); height: calc(100% / var(--rows)); }
+.board { transition: transform .45s var(--ease); transform-origin: 50% 50%; }
+.zw, .token-shadow, .token-pole { display: none; }
+.board:not(.is-3d) .token-stand { display: contents; }
+.board:not(.is-3d) .token.down { opacity: .35; }
+
+.board-wrap.is-3d { perspective: 1500px; perspective-origin: 50% 20%; overflow: hidden; }
+.board-wrap.is-3d .board { width: min(80cqw, 100cqh * var(--cols) / var(--rows) * 1.25); }
+.board.is-3d {
+  --tilt: 56deg;
+  transform-style: preserve-3d;
+  transform: translateY(-2%) rotateX(var(--tilt)) rotateZ(var(--rot)) scale(var(--fit));
+  border-color: rgba(233, 201, 131, .45);
+  background-color: rgba(8, 10, 28, .7);
+  box-shadow: 0 0 0 6px rgba(5, 7, 26, .9), 0 0 0 7px rgba(233, 201, 131, .25), 0 40px 80px rgba(0, 0, 0, .6);
+}
+.board.is-3d .scene-watermark { display: none; }
+
+/* 区域：贴地的是一块细线框，有高度（h3）的是一个矮台子 */
+.board.is-3d .zone { transform-style: preserve-3d; transform: translateZ(var(--h)); padding: 0; }
+.board.is-3d .zone.raised { background: rgba(14, 16, 40, .92); border-color: rgba(233, 201, 131, .55); }
+.board.is-3d .zw {
+  display: block; position: absolute;
+  background: linear-gradient(rgba(233, 201, 131, .22), rgba(5, 7, 26, .95));
+  border: 1px solid rgba(233, 201, 131, .3);
+}
+.board.is-3d .zw-s { left: 0; top: 100%; width: 100%; height: var(--h); transform-origin: top;    transform: rotateX(-90deg); }
+.board.is-3d .zw-n { left: 0; bottom: 100%; width: 100%; height: var(--h); transform-origin: bottom; transform: rotateX(90deg); }
+.board.is-3d .zw-e { top: 0; left: 100%; height: 100%; width: var(--h); transform-origin: left;   transform: rotateY(90deg); }
+.board.is-3d .zw-w { top: 0; right: 100%; height: 100%; width: var(--h); transform-origin: right;  transform: rotateY(-90deg); }
+/* 区域名字像一块立着的小牌子，永远朝着你 */
+.board.is-3d .zone-label {
+  position: absolute; left: 4px; top: 4px; padding: 1px 6px;
+  transform-origin: 0 100%;
+  transform: rotateZ(calc(-1 * var(--rot))) rotateX(calc(-1 * var(--tilt)));
+  background: rgba(5, 7, 26, .8); border-left: 1px solid var(--accent);
+  white-space: nowrap; font-size: 12px; color: var(--text-dim);
+}
+.board.is-3d .zone.exit .zone-label { border-left-color: var(--link); color: var(--link); }
+
+/* 棋子：脚下一圈影子，上面一块立牌 */
+.board.is-3d .token { transform-style: preserve-3d; transform: translateZ(var(--z)); transition: left .2s var(--ease), top .2s var(--ease), transform .2s var(--ease); }
+.board.is-3d .token-shadow {
+  display: block; position: absolute; left: 18%; top: 18%; width: 64%; height: 64%; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--c) 70%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%);
+}
+.board.is-3d .token.active .token-shadow { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(233, 201, 131, .25), 0 0 18px var(--accent); }
+.board.is-3d .token.selected .token-shadow { border-color: var(--c); box-shadow: 0 0 16px var(--c); }
+.board.is-3d .token-stand {
+  position: absolute; left: 6%; width: 88%; bottom: 50%; height: 175%;
+  display: flex; flex-direction: column; align-items: center;
+  transform-origin: 50% 100%;
+  transform: rotateZ(calc(-1 * var(--rot))) rotateX(calc(-1 * var(--tilt)));
+  pointer-events: auto;
+}
+.board.is-3d .token.down .token-stand { opacity: .35; }
+.board.is-3d .token-disc { width: 100%; flex: none; }
+.board.is-3d .token-name { position: static; transform: none; margin-top: 2px; font-size: 11px; color: var(--text); }
+.board.is-3d .token-pole {
+  display: block; flex: 1; width: 1px; min-height: 4px;
+  background: linear-gradient(var(--c), transparent);
+}
+
+/* 视角按钮：场景右下角 */
+.view-tools { position: absolute; z-index: 6; right: 10px; bottom: 10px; display: flex; gap: 4px; }
+.view-tools .btn { background: var(--panel); backdrop-filter: blur(6px); min-width: 32px; }
+
+@media (prefers-reduced-motion: reduce) { .board, .board.is-3d .token { transition: none; } }
+
+/* ---------- 场景小摆设（props.js） ---------- */
+.prop { position: absolute; pointer-events: none; color: var(--accent); }
+.prop-stand { position: absolute; left: 0; width: 100%; }
+.prop svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* 平面视角：摆设缩小成淡淡的小图标，不挡棋子 */
+.board:not(.is-3d) .prop-stand { top: 50%; left: 50%; width: 60%; transform: translate(-50%, -50%); opacity: .35; max-height: 100%; }
+.board:not(.is-3d) .prop svg { height: auto; max-height: 100%; }
+/* 立体视角：站起来，朝着你 */
+.board.is-3d .prop { transform-style: preserve-3d; transform: translateZ(var(--z)); }
+.board.is-3d .prop-stand {
+  bottom: 50%; transform-origin: 50% 100%;
+  transform: rotateZ(calc(-1 * var(--rot))) rotateX(calc(-1 * var(--tilt)));
+  filter: drop-shadow(0 0 6px rgba(233, 201, 131, .25));
+}
+.board.is-3d .prop.float svg { animation: prop-bob 3.6s ease-in-out infinite; }
+@keyframes prop-bob { 50% { transform: translateY(-12%); } }
+@media (prefers-reduced-motion: reduce) { .board.is-3d .prop.float svg { animation: none; } }
+
+/* ---------- 钟盘立体（world.js 的小塔） ---------- */
+.w-base { fill: rgba(233, 201, 131, .05); stroke: var(--accent); stroke-width: 1; opacity: .55; vector-effect: non-scaling-stroke; }
+.w-base.tier { fill: rgba(8, 10, 30, .85); opacity: .8; }
+.w-base.secret, .w-tower.secret { stroke-dasharray: 3 4; }
+.w-tower { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .7; vector-effect: non-scaling-stroke; }
+.w-tower.faint { opacity: .3; }
+.w-place.fog .w-tower, .w-place.fog .w-base { opacity: .22; }
+.w-place.current .w-tower { opacity: 1; stroke-width: 1.6; }
+.w-place.current .w-base { opacity: 1; fill: rgba(233, 201, 131, .18); }
+.world-svg.d3 .w-numeral { opacity: .55; }
+
+/* 手机：场景沙盘占满宽度，头部按钮缩小，提示文字收起 */
+@media (max-width: 760px) {
+  .board-wrap.is-3d .board { width: min(100cqw, 100cqh * var(--cols) / var(--rows) * 1.4); }
+  .board.is-3d { --tilt: 50deg; }
+  .area-board .panel-head .btn { padding: 4px 8px; font-size: 12px; }
+  .area-board #board-hint { display: none; }
+  .view-tools { right: 6px; bottom: 6px; }
+}

@@ -33,6 +33,10 @@
     const p = curPlace();
     return (p && sceneOf(p.id) || GENERIC).zones;
   };
+  App.sceneProps = function () {
+    const p = curPlace(), sc = p && sceneOf(p.id);
+    return (sc && sc.props) || [];
+  };
   App.sceneTitle = function () {
     const p = curPlace();
     return p ? App.placeFullName(p) : "";

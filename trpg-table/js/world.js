@@ -14,8 +14,10 @@
   const EDGE = 460;          // 外圈：筑梦边境
   const NS = "http://www.w3.org/2000/svg";
 
-  const HOME = { x: 20, y: 0, w: 960, h: 1080 };  // 「全图」时看到的范围
-  let view = Object.assign({}, HOME);             // 当前看到的范围（SVG 坐标）
+  const HOME2 = { x: 20, y: 0, w: 960, h: 1080 };   // 「全图」时看到的范围（平面）
+  const HOME3 = { x: 20, y: 130, w: 960, h: 760 };  // （立体）
+  const home = () => (!App.settings.view || App.settings.view.d3 !== false) ? HOME3 : HOME2;
+  let view = Object.assign({}, home());             // 当前看到的范围（SVG 坐标）
   let pointers = new Map(), gesture = null;
   let openCard = null;                       // 正在显示的地点卡片 id
 
@@ -35,6 +37,49 @@
     if (p.edge) return polar(p.hour, EDGE);
     if (p.r != null) return polar(p.hour, p.r);
     return polar(p.hour + (p.da || 0) / 30, RING + (p.dr || 0));
+  }
+
+  /* ---------- 立体视角 ----------
+     钟盘像一只平放在桌上的怀表（上下压扁一半），十二个时刻是高低不同的小塔，
+     中间的白日梦酒店是最高的阶梯塔，现实层在下面一层。 */
+  const K = 0.5;                                   // 压扁比例
+  const d3 = () => !App.settings.view || App.settings.view.d3 !== false;
+  const HOUR_H = [34, 60, 70, 55, 90, 66, 44, 52, 78, 60, 86, 124];  // 每个时刻的塔高（黄金的时刻最高）
+  const towerH = (p) => p.center ? 96 : p.reality ? 0 : p.hidden ? -70 : p.edge ? 10
+    : p.kind === "hour" ? HOUR_H[p.hour] : 22;
+  const proj = (pt) => d3() ? { x: pt.x, y: CY + (pt.y - CY) * K } : pt;
+  /* 画图用的位置：立体时 = 塔顶 */
+  function drawPos(p) {
+    if (!d3()) return p.pos;
+    if (p.reality) return { x: CX, y: 850 };
+    const b = proj(p.pos);
+    return { x: b.x, y: b.y - towerH(p) };
+  }
+
+  function drawTower(p) {
+    if (!d3() || p.reality) return "";
+    const b = proj(p.pos), H = towerH(p), t = { x: b.x, y: b.y - H };
+    const ell = (y, rx, cls) => svg("ellipse", { cx: b.x, cy: y, rx, ry: rx * K, class: cls || "w-base" });
+    if (p.center) {
+      // 阶梯塔：三层台子一层比一层小，顶上一根尖
+      const tiers = [[0, 74], [.42, 54], [.74, 36]];
+      let g = "";
+      tiers.forEach(([f, rx], i) => {
+        const y = b.y - H * f, y2 = b.y - H * (tiers[i + 1] ? tiers[i + 1][0] : .92);
+        g += svg("path", { d: `M${b.x - rx} ${y} L${b.x - rx * .86} ${y2} M${b.x + rx} ${y} L${b.x + rx * .86} ${y2}`, class: "w-tower" });
+        g += ell(y, rx, i ? "w-base tier" : "w-base");
+      });
+      for (let i = -3; i <= 3; i++) g += svg("line", { x1: b.x + i * 9, y1: b.y - H * .74, x2: b.x + i * 6, y2: b.y - H * .92, class: "w-tower faint" });
+      return g;
+    }
+    if (H < 0) return svg("line", { x1: b.x, y1: b.y, x2: t.x, y2: t.y, class: "w-tower secret" }) + ell(b.y, 16, "w-base secret");
+    if (p.kind === "hour") {
+      const w0 = 13, w1 = 7;
+      return ell(b.y, 24) +
+        svg("path", { d: `M${b.x - w0} ${b.y} L${t.x - w1} ${t.y} M${b.x + w0} ${b.y} L${t.x + w1} ${t.y}`, class: "w-tower" }) +
+        svg("line", { x1: b.x - (w0 + w1) / 2, y1: b.y - H / 2, x2: b.x + (w0 + w1) / 2, y2: b.y - H / 2, class: "w-tower faint" });
+    }
+    return ell(b.y, 8) + svg("line", { x1: b.x, y1: b.y, x2: t.x, y2: t.y, class: "w-tower" });
   }
 
   /* 所有能点的地点：十二时刻本身 + 子地点 */
@@ -104,7 +149,21 @@
     const s = polar(9, RING + 70), e = polar(2.2, RING + 80);
     g += svg("path", { d: `M${s.x} ${s.y} Q ${CX} ${CY - 640} ${e.x} ${e.y}`, class: "w-airship" });
     g += svg("text", { x: CX - 210, y: 66, class: "w-note" }, "晖长石号航线");
-    // 现实层：横线隔开，入梦池的虚线连到中心
+    if (!d3()) g += drawReality();
+    return g;
+  }
+
+  // 现实层：横线隔开，入梦池的虚线连到中心
+  function drawReality() {
+    let g = "";
+    if (d3()) {
+      g += svg("line", { x1: 120, y1: 790, x2: 880, y2: 790, class: "w-thin" });
+      g += svg("text", { x: 120, y: 780, class: "w-note start" }, "梦境");
+      g += svg("text", { x: 120, y: 810, class: "w-note start" }, "现实");
+      g += svg("path", { d: `M${CX - 70} ${CY + 6} C ${CX - 300} ${CY + 130}, ${CX - 240} 790, ${CX - 18} 834`, class: "w-dreamline" });
+      g += svg("text", { x: CX - 300, y: 740, class: "w-note" }, "入梦池");
+      return g;
+    }
     g += svg("line", { x1: 120, y1: 990, x2: 880, y2: 990, class: "w-thin" });
     g += svg("text", { x: 120, y: 980, class: "w-note start" }, "梦境");
     g += svg("text", { x: 120, y: 1010, class: "w-note start" }, "现实");
@@ -137,13 +196,15 @@
   function drawPlaces() {
     let g = "";
     const cur = S().current;
-    allPlaces().forEach((p) => {
-      if (isHidden(p)) return;
-      const pos = p.pos;
+    const list = allPlaces().filter((p) => !isHidden(p));
+    // 立体时从后往前画，近处的塔挡住远处的
+    if (d3()) list.sort((a, b) => (a.reality ? 1e4 : proj(a.pos).y) - (b.reality ? 1e4 : proj(b.pos).y));
+    list.forEach((p) => {
+      const pos = drawPos(p), D = d3();
       const cls = ["w-place", p.kind, visited(p) ? "visited" : "fog", p.id === cur ? "current" : "",
                    p.hidden ? "secret" : "", p.center ? "center" : "", p.reality ? "reality" : "", p.edge ? "edge" : ""].join(" ");
       let shape;
-      if (p.center) shape = svg("circle", { cx: pos.x, cy: pos.y, r: 62, class: "w-node" });
+      if (p.center) shape = svg("circle", { cx: pos.x, cy: pos.y, r: D ? 26 : 62, class: "w-node" });
       else if (p.reality) shape = svg("rect", { x: pos.x - 150, y: pos.y - 26, width: 300, height: 52, class: "w-node" });
       else if (p.kind === "hour") shape = svg("circle", { cx: pos.x, cy: pos.y, r: 20, class: "w-node" }) + svg("circle", { cx: pos.x, cy: pos.y, r: 5, class: "w-pin" });
       else if (p.hidden) shape = svg("circle", { cx: pos.x, cy: pos.y, r: 34, class: "w-node" }) + svg("circle", { cx: pos.x, cy: pos.y, r: 44, class: "w-secret-ring" });
@@ -152,13 +213,14 @@
 
       let label;
       if (p.center || p.reality || p.hidden) {
-        label = svg("text", { x: pos.x, y: pos.y + (p.center ? -6 : 8), class: "w-label" }, esc(p.center ? "白日梦酒店" : p.name))
-              + (p.center ? svg("text", { x: pos.x, y: pos.y + 24, class: "w-sublabel" }, "梦境大堂 · 中央车站") : "");
+        const ly = p.center ? (D ? towerH(p) + 62 : -6) : p.hidden && D ? 54 : 8;
+        label = svg("text", { x: pos.x, y: pos.y + ly, class: "w-label" }, esc(p.center ? "白日梦酒店" : p.name))
+              + (p.center && !D ? svg("text", { x: pos.x, y: pos.y + 24, class: "w-sublabel" }, "梦境大堂 · 中央车站") : "");
       } else {
         const L = labelFor(p, pos);
         label = svg("text", { x: L.x, y: L.y, "text-anchor": L.anchor, class: p.kind === "hour" ? "w-label" : "w-label small" }, esc(p.name));
       }
-      g += `<g class="${cls}" data-place="${p.id}" tabindex="0" role="button" aria-label="${esc(App.placeFullName(p))}">${shape}${label}</g>`;
+      g += `<g class="${cls}" data-place="${p.id}" tabindex="0" role="button" aria-label="${esc(App.placeFullName(p))}">${drawTower(p)}${shape}${label}</g>`;
     });
     return g;
   }
@@ -166,9 +228,9 @@
   function drawToken() {
     const cur = S().current && allPlaces().find((p) => p.id === S().current);
     if (!cur) return "";
-    const { x, y } = cur.pos;
+    const { x, y } = drawPos(cur);
     const name = (App.state.character.name || "你").slice(0, 1);
-    const dy = cur.center ? -86 : cur.reality ? -48 : -34;
+    const dy = d3() ? (cur.center ? -44 : cur.reality ? -48 : 30) : cur.center ? -86 : cur.reality ? -48 : -34;
     return `<g class="w-token" transform="translate(${x} ${y + dy})">
       <circle r="17"></circle><text y="6">${esc(name)}</text></g>`;
   }
@@ -178,10 +240,10 @@
     if (!el() || !dlg().open) return;   // 弹窗关着就不画
     const zoom = W / view.w;
     el().innerHTML = `
-      <svg xmlns="${NS}" class="world-svg ${zoom > 1.5 ? "zoomed" : ""}" viewBox="${view.x} ${view.y} ${view.w} ${view.h}"
+      <svg xmlns="${NS}" class="world-svg ${zoom > 1.5 ? "zoomed" : ""} ${d3() ? "d3" : ""}" viewBox="${view.x} ${view.y} ${view.w} ${view.h}"
            preserveAspectRatio="xMidYMid meet" role="img" aria-label="匹诺康尼大地图">
-        <g class="w-dial">${drawDial()}</g>
-        ${drawHand()}
+        <g class="w-dial" ${d3() ? `transform="matrix(1 0 0 ${K} 0 ${CY * (1 - K)})"` : ""}>${drawDial()}${d3() ? drawHand() : ""}</g>
+        ${d3() ? `<g class="w-dial">${drawReality()}</g>` : drawHand()}
         <g class="w-places">${drawPlaces()}</g>
         ${drawToken()}
       </svg>
@@ -189,6 +251,7 @@
         <button class="btn btn-small btn-ghost" data-zoom="in" aria-label="放大">＋</button>
         <button class="btn btn-small btn-ghost" data-zoom="out" aria-label="缩小">－</button>
         <button class="btn btn-small btn-ghost" data-zoom="fit" aria-label="看全图">全图</button>
+        <button class="btn btn-small btn-ghost" data-zoom="d3">${d3() ? "平面" : "立体"}</button>
       </div>
       ${openCard ? cardHtml(openCard) : ""}`;
   }
@@ -243,7 +306,7 @@
     view = { x: cx - (cx - view.x) * k, y: cy - (cy - view.y) * k, w: nw, h: view.h * k };
     render();
   }
-  function fit() { view = Object.assign({}, HOME); render(); }
+  function fit() { view = Object.assign({}, home()); render(); }
 
   function bind() {
     const root = el();
@@ -305,6 +368,12 @@
     root.addEventListener("click", (e) => {
       const z = e.target.closest("[data-zoom]");
       if (z) {
+        if (z.dataset.zoom === "d3") {
+          if (!App.settings.view) App.settings.view = { d3: true, rot: 0 };
+          App.settings.view.d3 = !d3(); App.saveSettings();
+          fit(); if (App.board) App.board.render();
+          return;
+        }
         if (z.dataset.zoom === "fit") fit();
         else zoomAt(z.dataset.zoom === "in" ? 1.4 : 1 / 1.4, view.x + view.w / 2, view.y + view.h / 2);
         return;
