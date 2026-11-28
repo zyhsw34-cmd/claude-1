@@ -6,24 +6,42 @@
    DM 回复里的 [检定:身手 13] 会变成一个按钮，点了就投骰并把结果发回去。
    ========================================================= */
 (function (App) {
-  const CHECK_RE = /\[检定[:：]\s*([^\s\]]+)\s+(\d+)\s*\]/g;
+  // 认 [检定:身手 13]，也认 【判定:身手 威胁13】 这种写法
+  const CHECK_RE = /[\[【](?:检定|判定)[:：]\s*([^\s\]】]+)\s+(?:威胁|难度)?\s*(\d+)\s*[\]】]/g;
   // DM 给桌面的标记，例如【移动到：匹诺康尼拍卖大厅】【好感：猎犬家系+1】
-  const TAG_RE = /【(移动到|解锁地点|获得指针|好感)[:：]\s*([^】]+)】/g;
+  const TAG_RE = /【(移动到|解锁地点|获得指针|好感|推进|线索)[:：]\s*([^】]+)】/g;
   const HISTORY = 30; // 最多带上最近多少条对话
   let busy = false;
+
+  /* 最后一条 DM 回复的位置（它后面只有桌面提示时才算"最后"） */
+  function lastDmIndex() {
+    const c = App.state.chat;
+    for (let i = c.length - 1; i >= 0; i--) {
+      if (c[i].role === "assistant") return i;
+      if (c[i].role !== "note") return -1;
+    }
+    return -1;
+  }
 
   /* ---------- 显示 ---------- */
   function msgHtml(m, i) {
     if (m.role === "note") return `<div class="msg system">${App.esc(m.content)}</div>`;
     if (m.role === "error") return `<div class="msg system error">${App.esc(m.content)}</div>`;
-    const who = m.role === "assistant" ? "DM" : m.kind === "roll" ? "骰子" : App.state.character.name || "你";
+    const who = m.role === "assistant" ? "DM" : m.kind === "roll" ? "骰子" : m.kind === "fix" ? "你（纠正）" : App.state.character.name || "你";
     let body = App.esc(m.content);
     if (m.role === "assistant") {
       body = body.replace(CHECK_RE, (all, attr, dc) => {
         const a = App.attrByLabel(attr);
-        return a ? `<button class="btn btn-small btn-accent roll-request" data-attr="${a.key}" data-dc="${dc}" ${m.rolled ? "disabled" : ""}>🎲 ${App.esc(a.label)}检定 · 难度 ${dc}</button>`
+        const [lo, hi] = App.dcRange();
+        dc = Math.max(lo, Math.min(hi, +dc)); // AI 给的难度超出规则范围就夹回来
+        return a ? `<button class="btn btn-small btn-accent roll-request" data-attr="${a.key}" data-dc="${dc}" ${m.rolled ? "disabled" : ""}>🎲 ${App.esc(a.label)}判定 · 难度 ${dc}</button>`
                  : all;
       });
+      const isLast = i === lastDmIndex();
+      body += `<span class="msg-tools">
+        <button class="btn btn-ghost btn-small" data-act="pin" title="把这段（或你选中的文字）钉进记忆，DM 会一直记得">📌 钉住</button>
+        ${isLast && !busy ? `<button class="btn btn-ghost btn-small" data-act="wrong" title="DM 说错了？写一句哪里不对，让它重写">↻ 这不对</button>` : ""}
+      </span>`;
     }
     if (m.role === "assistant") {
       body = body.replace(TAG_RE, (all, kind, val) => `<span class="tag-chip">◆ ${App.esc(kind)}：${App.esc(val.trim())}</span>`);
@@ -49,6 +67,7 @@
 
   /* ---------- 拼给 AI 的内容 ---------- */
   function buildMessages() {
+    if (App.director) return App.director.build(); // 新的分层资料，见 director.js
     const p = App.preset(), r = p.rules, c = App.state.character;
     const attrs = p.attributes.map((a) => `${a.label} ${c.attrs[a.key] >= 0 ? "+" : ""}${c.attrs[a.key] || 0}`).join("，");
     const tokens = App.state.tokens.map((t) => `${t.name}(${t.kind === "enemy" ? "敌" : t.kind === "ally" ? "友" : "玩家"}) 在第${t.x + 1}列第${t.y + 1}行`).join("；");
@@ -161,12 +180,14 @@
       else await stream(reply, paint);
       if (!reply.content.trim()) reply.content = "（DM 没有回话，再试一次？）";
       applyTags(reply);
+      App.director?.afterReply(reply); // 【推进】【线索】，见 director.js
     } catch (err) {
       App.state.chat.pop();
       App.state.chat.push({ role: "error", content: "连接 DM 失败：" + (err.message || err) });
     }
     busy = false;
     App.save();
+    if (App.memory?.needsSummary()) App.memory.summarize(); // 对话太长就整理进前情摘要
   }
 
   async function demo(reply, paint) {
@@ -189,7 +210,7 @@
         messages: buildMessages(),
         stream: true,
         thinking: { type: s.thinking ? "enabled" : "disabled" },
-        temperature: 1.0
+        temperature: s.thinking ? 1.0 : (s.temperature ?? 0.8) // 思考模式下官方会忽略它
       })
     });
     if (!res.ok) {
@@ -224,6 +245,7 @@
     render,
     updateStatus,
     say(text) {
+      App.director?.beforeTurn();
       App.state.chat.push({ role: "user", content: text });
       App.save();
       ask();
@@ -232,6 +254,15 @@
       App.state.chat.push({ role: "user", kind: "roll", content: "【掷骰】" + text });
       App.save();
       if (autoReply) ask();
+    },
+    retry(reason) {
+      if (busy) return;
+      const i = lastDmIndex();
+      if (i < 0) return;
+      App.state.chat.splice(i, 1);
+      App.state.chat.push({ role: "user", kind: "fix", content: `【纠正】你上一条回复有问题：${reason || "和事实不符"}。请以事实表为准，重新写这一段。` });
+      App.save();
+      ask();
     },
     addSystem(text) {
       App.state.chat.push({ role: "note", content: text });
@@ -249,11 +280,26 @@
         if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
       });
       App.$("#chat").addEventListener("click", (e) => {
+        const t = e.target.closest("[data-act]");
+        if (t) {
+          const m = App.state.chat[+t.closest(".msg").dataset.i];
+          if (t.dataset.act === "pin") {
+            const sel = String(window.getSelection?.() || "").trim();
+            App.memory.pin(sel || m.content.replace(CHECK_RE, "").replace(TAG_RE, "").trim());
+          } else if (t.dataset.act === "wrong") {
+            App.$("#wrong-text").value = "";
+            App.$("#wrong-dialog").showModal();
+          }
+          return;
+        }
         const b = e.target.closest(".roll-request");
         if (!b || busy || b.disabled) return;
         const m = App.state.chat[+b.closest(".msg").dataset.i];
         if (m) m.rolled = true; // 同一个检定只投一次
         App.dice.doCheck(b.dataset.attr, +b.dataset.dc, App.$("#check-mode").value, true);
+      });
+      App.$("#wrong-dialog").addEventListener("close", () => {
+        if (App.$("#wrong-dialog").returnValue === "send") App.dm.retry(App.$("#wrong-text").value.trim());
       });
       render();
       App.subscribe(() => { if (!busy) render(); });

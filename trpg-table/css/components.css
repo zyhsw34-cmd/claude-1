@@ -435,3 +435,32 @@ textarea { resize: none; }
 }
 /* 手机上地图本来就是单独一行，不需要「展开 / 收起」 */
 @media (max-width: 760px) { #btn-map-big { display: none !important; } }
+
+/* ---------- DM 记忆 / DM 看到了什么 / 消息小按钮（director.js、memory.js） ---------- */
+.area-dm .panel-head .panel-tools { margin-left: auto; display: flex; gap: 4px; }
+.msg-tools { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; font-family: var(--font-body, inherit); }
+.msg-tools .btn { font-size: 11px; padding: 2px 8px; opacity: .55; }
+.msg:hover .msg-tools .btn, .msg-tools .btn:focus-visible { opacity: 1; }
+@media (hover: none) { .msg-tools .btn { opacity: .8; } }
+
+.memory-dialog, .peek-dialog { width: min(640px, calc(100vw - 32px)); }
+.memory-dialog .dialog-body, .peek-dialog .dialog-body { max-height: calc(100vh - 64px); overflow: auto; }
+.mem-section { border-top: 1px solid var(--panel-border); padding: 12px 0; }
+.mem-section h3 { margin: 0 0 8px; font-size: 14px; }
+.mem-section h3 small { font-weight: 400; color: var(--text-faint); margin-left: 6px; }
+.mem-section textarea, .peek-dialog textarea, #wrong-text { width: 100%; box-sizing: border-box; font: inherit; }
+.mem-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.mem-list li { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between;
+  padding: 6px 8px; border-radius: var(--radius-m); background: var(--msg-player); font-size: 13px; }
+.mem-list li.empty { background: none; color: var(--text-faint); padding-left: 0; }
+.mem-cards li.on { outline: 1px solid var(--link); }
+.mem-card-text { color: var(--text-dim); margin-top: 2px; white-space: pre-wrap; }
+.mem-list .tag { color: var(--link); }
+.mem-add { display: flex; gap: 6px; }
+.mem-add input { flex: 1; }
+.mem-add-lore { flex-direction: column; align-items: stretch; }
+.mem-add-lore .btn { align-self: flex-end; }
+.peek-body details { border: 1px solid var(--panel-border); border-radius: var(--radius-m); margin-bottom: 8px; }
+.peek-body summary { cursor: pointer; padding: 6px 10px; font-size: 13px; color: var(--text-dim); }
+.peek-body pre { margin: 0; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.6;
+  max-height: 50vh; overflow: auto; border-top: 1px solid var(--panel-border); }
